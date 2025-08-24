@@ -48,8 +48,12 @@ jobs:
               core.setFailed('Missing required fields: name and image');
               return;
             }
-            const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-            const slug = slugify(name);
+            let slug = slugify(name);
+            if (!slug) {
+              // Fallback: use 'user-' + timestamp to ensure non-empty, unique slug
+              slug = 'user-' + Date.now();
+              core.warning('Generated slug was empty. Using fallback slug: ' + slug);
+            }
             core.setOutput('name', name);
             core.setOutput('role', role);
             core.setOutput('affiliation', affiliation);
