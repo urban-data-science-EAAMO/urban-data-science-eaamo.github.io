@@ -1,0 +1,138 @@
+name: Issue → PR: Add Member
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+jobs:
+  from-issue:
+    if: |
+      contains(github.event.issue.labels.*.name, 'members')
+      && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse issue form
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            // Helper to capture section heading then next non-empty line(s)
+            function extractAfter(heading) {
+              const re = new RegExp(`(^|\n)\s*#{1,6}\\s*${heading}\\s*\n+([\s\S]*?)(\n{2,}|$)`, 'i');
+              const m = body.match(re);
+              if (!m) return '';
+              return m[2].trim();
+            }
+            // Also support inline key: value if present
+            function extractKey(key) {
+              const re = new RegExp(`(^|\n)\s*${key}\s*:\\s*(.*)`, 'i');
+              const m = body.match(re);
+              return m ? m[2].trim() : '';
+            }
+            const name = extractAfter('Full name') || extractKey('name');
+            const role = extractAfter('Role') || extractKey('role');
+            const affiliation = extractAfter('Affiliation') || extractKey('affiliation');
+            const image = extractAfter('Image URL or repo path') || extractKey('image');
+            const website = extractAfter('Personal website') || extractKey('website');
+            const order = extractAfter('Ordering') || extractKey('order');
+            if (!name || !image) {
+              core.setFailed('Missing required fields: name and image');
+              return;
+            }
+            let slug = slugify(name);
+            if (!slug) {
+              // Fallback: use 'user-' + timestamp to ensure non-empty, unique slug
+              slug = 'user-' + Date.now();
+              core.warning('Generated slug was empty. Using fallback slug: ' + slug);
+            }
+            core.setOutput('name', name);
+            core.setOutput('role', role);
+            core.setOutput('affiliation', affiliation);
+            core.setOutput('image', image);
+            core.setOutput('website', website);
+            core.setOutput('order', order);
+            core.setOutput('slug', slug);
+
+      - name: Create working branch
+        run: |
+          base="${{ github.event.repository.default_branch }}"
+          git checkout -b add-member/${{ steps.parse.outputs.slug }} origin/$base || git checkout -b add-member/${{ steps.parse.outputs.slug }}
+
+      - name: Ensure directories
+        run: |
+          mkdir -p src/content/members src/assets/members
+
+      - name: Download image if URL
+        id: dl
+        run: |
+          IMG="${{ steps.parse.outputs.image }}"
+          if echo "$IMG" | grep -qi '^http'; then
+            # Extract the path from the URL (remove query and fragment)
+            path=$(echo "$IMG" | sed -E 's|^[^:/]+://[^/]+||' | cut -d'?' -f1 | cut -d'#' -f1)
+            filename=$(basename "$path")
+            ext="${filename##*.}"
+            if [ "$filename" = "$ext" ]; then ext="jpg"; fi
+            out="src/assets/members/${{ steps.parse.outputs.slug }}.$ext"
+            curl -L "$IMG" -o "$out"
+            echo "path=../../assets/members/$(basename "$out")" >> $GITHUB_OUTPUT
+          else
+            echo "path=$IMG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Write member file
+        run: |
+          cat > src/content/members/${{ steps.parse.outputs.slug }}.md <<EOF
+          ---
+          name: "${{ steps.parse.outputs.name }}"
+          role: "${{ steps.parse.outputs.role }}"
+          affiliation: "${{ steps.parse.outputs.affiliation }}"
+          image: "${{ steps.dl.outputs.path }}"
+          website: "${{ steps.parse.outputs.website }}"
+          order: ${{ steps.parse.outputs.order }}
+          tags: ["member"]
+          ---
+          EOF
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/members src/assets/members || true
+          git commit -m "chore(members): add ${{ steps.parse.outputs.slug }} via issue" || echo "No changes to commit"
+
+      - name: Push branch
+        run: |
+          git push -u origin HEAD || true
+
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: add-member/${{ steps.parse.outputs.slug }}
+          title: "[Member] Add: ${{ steps.parse.outputs.name }}"
+          body: |
+            Auto-generated from issue #${{ github.event.issue.number }}.
+
+            <!-- MEMBER-INFO-START -->
+            ```yaml
+            name: "${{ steps.parse.outputs.name }}"
+            role: "${{ steps.parse.outputs.role }}"
+            affiliation: "${{ steps.parse.outputs.affiliation }}"
+            image: "${{ steps.parse.outputs.image }}"
+            website: "${{ steps.parse.outputs.website }}"
+            order: ${{ steps.parse.outputs.order }}
+            ```
+            <!-- MEMBER-INFO-END -->
+          labels: members, content
+          delete-branch: false
+
+
