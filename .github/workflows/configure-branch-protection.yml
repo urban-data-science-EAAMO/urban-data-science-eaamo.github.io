@@ -26,7 +26,20 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const branch = core.getInput('branch');
+            const inputFromCore = (core.getInput('branch') || '').trim();
+            const inputFromEvent = (context.payload?.inputs?.branch || '').trim();
+            const defaultBranch = context.payload?.repository?.default_branch;
+            const branch = inputFromCore || inputFromEvent || defaultBranch || 'main';
+
+            // Validate branch exists to avoid 404
+            try {
+              await github.rest.repos.getBranch({ owner, repo, branch });
+            } catch (e) {
+              core.setFailed(`Branch '${branch}' not found. Provide a valid branch via workflow input.`);
+              return;
+            }
+
+            core.info(`Applying protection to ${owner}/${repo}@${branch}`);
             // This check name is how GitHub renders Actions checks in branch protection UI:
             // "<workflow name> / <job id>"
             const requiredContexts = [
