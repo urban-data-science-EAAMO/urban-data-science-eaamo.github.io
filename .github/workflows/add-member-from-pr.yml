@@ -1,0 +1,110 @@
+name: Add Member from PR Template
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  add-member:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Extract member info from PR body
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request?.body || '';
+            const match = body.match(/<!-- MEMBER-INFO-START -->[\s\S]*?```yaml([\s\S]*?)```[\s\S]*?<!-- MEMBER-INFO-END -->/);
+            if (!match) {
+              core.setOutput('found', 'false');
+              return;
+            }
+            // Minimal YAML parser for simple key: value pairs used here
+            const lines = match[1].split(/\r?\n/);
+            const data = {};
+            for (const line of lines) {
+              const m = line.match(/^\s*([A-Za-z0-9_]+)\s*:\s*"?(.*?)"?\s*$/);
+              if (m) data[m[1]] = m[2];
+            }
+            const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+            const slug = slugify(data.name || 'member');
+            core.setOutput('found', 'true');
+            core.setOutput('name', data.name || '');
+            core.setOutput('role', data.role || '');
+            core.setOutput('affiliation', data.affiliation || '');
+            core.setOutput('image', data.image || '');
+            core.setOutput('website', data.website || '');
+            core.setOutput('order', String(data.order ?? ''));
+            core.setOutput('slug', slug);
+
+      - name: Ensure members assets directory
+        if: steps.extract.outputs.found == 'true'
+        run: mkdir -p src/assets/members
+
+      - name: Download remote image if URL
+        if: steps.extract.outputs.found == 'true' && startsWith(steps.extract.outputs.image, 'http')
+        run: |
+          url="${{ steps.extract.outputs.image }}"
+          # Extract extension from URL, strip querystring; default to jpg
+          ext=$(echo "$url" | sed -E 's/.*\.([A-Za-z0-9]+)(\?.*)?$/\1/')
+          if [ -z "$ext" ]; then ext=jpg; fi
+          out="src/assets/members/${{ steps.extract.outputs.slug }}.$ext"
+          curl -L "$url" -o "$out"
+          echo "local_image_path=$out" >> $GITHUB_OUTPUT
+
+      - name: Resolve image path
+        id: img
+        if: steps.extract.outputs.found == 'true'
+        run: |
+          IMAGE_INPUT="${{ steps.extract.outputs.image }}"
+          if echo "$IMAGE_INPUT" | grep -qi '^http'; then
+            # Use the downloaded file path converted to content relative path
+            DOWNLOADED="${{ steps.extract.outputs.slug }}"
+            # Find the file matching the slug in assets/members
+            FILE=$(ls src/assets/members/${DOWNLOADED}.* | head -n1)
+            REL="../../assets/members/$(basename "$FILE")"
+            echo "path=$REL" >> $GITHUB_OUTPUT
+          else
+            echo "path=$IMAGE_INPUT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create member content file
+        if: steps.extract.outputs.found == 'true'
+        run: |
+          mkdir -p src/content/members
+          cat > src/content/members/${{ steps.extract.outputs.slug }}.md <<'EOF'
+          ---
+          name: "${{ steps.extract.outputs.name }}"
+          role: "${{ steps.extract.outputs.role }}"
+          affiliation: "${{ steps.extract.outputs.affiliation }}"
+          image: "${{ steps.img.outputs.path }}"
+          website: "${{ steps.extract.outputs.website }}"
+          order: ${{ steps.extract.outputs.order }}
+          tags: ["member"]
+          ---
+          EOF
+
+      - name: Commit changes
+        if: steps.extract.outputs.found == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/members src/assets/members || true
+          git commit -m "chore(members): add ${{ steps.extract.outputs.slug }} via PR template" || echo "No changes to commit"
+
+      - name: Push changes
+        if: steps.extract.outputs.found == 'true'
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
+
+
