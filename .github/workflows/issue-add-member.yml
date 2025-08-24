@@ -1,4 +1,4 @@
-name: Issue → PR: Add Member
+name: "Issue → PR: Add Member"
 
 on:
   issues:
@@ -6,9 +6,7 @@ on:
 
 jobs:
   from-issue:
-    if: |
-      contains(github.event.issue.labels.*.name, 'members')
-      && github.event.issue.state == 'open'
+    if: contains(github.event.issue.labels.*.name, 'members') && github.event.issue.state == 'open'
     runs-on: ubuntu-latest
     permissions:
       contents: write
