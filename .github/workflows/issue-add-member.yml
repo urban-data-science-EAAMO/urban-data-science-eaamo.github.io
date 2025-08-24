@@ -72,8 +72,11 @@ jobs:
         run: |
           IMG="${{ steps.parse.outputs.image }}"
           if echo "$IMG" | grep -qi '^http'; then
-            ext=$(echo "$IMG" | sed -E 's/.*\.([A-Za-z0-9]+)(\?.*)?$/\1/')
-            [ -z "$ext" ] && ext=jpg
+            # Extract the path from the URL (remove query and fragment)
+            path=$(echo "$IMG" | sed -E 's|^[^:/]+://[^/]+||' | cut -d'?' -f1 | cut -d'#' -f1)
+            filename=$(basename "$path")
+            ext="${filename##*.}"
+            if [ "$filename" = "$ext" ]; then ext="jpg"; fi
             out="src/assets/members/${{ steps.parse.outputs.slug }}.$ext"
             curl -L "$IMG" -o "$out"
             echo "path=../../assets/members/$(basename "$out")" >> $GITHUB_OUTPUT
