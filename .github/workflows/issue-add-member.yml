@@ -152,7 +152,7 @@ jobs:
           name: "${{ steps.parse.outputs.name }}"
           role: "${{ steps.parse.outputs.role }}"
           affiliation: "${{ steps.parse.outputs.affiliation }}"
-          image: "${{ steps.parse.outputs.image }}"
+          image: "${{ steps.dl.outputs.path }}"
           website: "${{ steps.parse.outputs.website }}"
           order: ${{ steps.parse.outputs.order }}
           tags: ["member"]
@@ -187,11 +187,13 @@ jobs:
             name: "${{ steps.parse.outputs.name }}"
             role: "${{ steps.parse.outputs.role }}"
             affiliation: "${{ steps.parse.outputs.affiliation }}"
-            image: "${{ steps.parse.outputs.image }}"
+            image: "${{ steps.dl.outputs.path }}"
             website: "${{ steps.parse.outputs.website }}"
             order: ${{ steps.parse.outputs.order }}
             ```
             <!-- MEMBER-INFO-END -->
+            
+            Closes #${{ github.event.issue.number }}
           labels: members, content
           delete-branch: false
 
