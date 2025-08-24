@@ -40,54 +40,95 @@ jobs:
         with:
           script: |
             const body = context.payload.issue.body || '';
-            // Helper to capture section heading then next non-empty line(s)
-            function extractAfter(heading) {
-              const re = new RegExp(`(^|\n)\s*#{1,6}\\s*${heading}\\s*\n+([\s\S]*?)(\n{2,}|$)`, 'i');
-              const m = body.match(re);
-              if (!m) return '';
-              return m[2].trim();
+
+            // Try to parse a fenced YAML block first (most robust)
+            let yamlBlock;
+            {
+              const m = body.match(/```yaml[\s\S]*?```/i);
+              if (m) {
+                yamlBlock = m[0].replace(/```yaml/i, '').replace(/```\s*$/i, '').trim();
+              }
             }
-            // Also support inline key: value if present
-            function extractKey(key) {
-              const re = new RegExp(`(^|\n)\s*${key}\s*:\\s*(.*)`, 'i');
-              const m = body.match(re);
+            const data = {};
+            if (yamlBlock) {
+              const lines = yamlBlock.split(/\r?\n/);
+              for (const line of lines) {
+                const mm = line.match(/^\s*([A-Za-z0-9_]+)\s*:\s*"?(.*?)"?\s*$/);
+                if (mm) data[mm[1].toLowerCase()] = mm[2];
+              }
+            }
+
+            // Helper to build a map of headings → content
+            const headingMap = {};
+            if (!data.name || !data.image) {
+              const lines = body.split(/\r?\n/);
+              let current = null; let buf = [];
+              const flush = () => { if (current) { headingMap[current.toLowerCase()] = buf.join('\n').trim(); buf = []; } };
+              for (const line of lines) {
+                const h = line.match(/^\s*#{1,6}\s*(.*?)\s*$/);
+                if (h) { flush(); current = h[1]; continue; }
+                if (current) buf.push(line);
+              }
+              flush();
+            }
+
+            const fromHeadings = (needles) => {
+              for (const [k, v] of Object.entries(headingMap)) {
+                const lower = k.toLowerCase();
+                if (needles.some(n => lower.includes(n))) return (v || '').trim();
+              }
+              return '';
+            };
+            const extractInline = (key) => {
+              const m = body.match(new RegExp(`(^|\\r?\\n)\\s*${key}\\s*:\\s*(.+)`, 'i'));
               return m ? m[2].trim() : '';
+            };
+
+            const lower = (s) => (s || '').toLowerCase();
+            let name = data.name || fromHeadings(['full name','name']) || extractInline('name');
+            let role = data.role || fromHeadings(['role']) || extractInline('role');
+            let affiliation = data.affiliation || fromHeadings(['affiliation']) || extractInline('affiliation');
+            let image = data.image || fromHeadings(['image url','image','repo path']) || extractInline('image');
+            let website = data.website || fromHeadings(['website','profile']) || extractInline('website');
+            let order = data.order || fromHeadings(['order','ordering']) || extractInline('order');
+
+            if (!name && context.payload.issue.title) {
+              const mt = context.payload.issue.title.match(/Add:\s*(.+)$/i);
+              if (mt) name = mt[1].trim();
             }
-            const name = extractAfter('Full name') || extractKey('name');
-            const role = extractAfter('Role') || extractKey('role');
-            const affiliation = extractAfter('Affiliation') || extractKey('affiliation');
-            const image = extractAfter('Image URL or repo path') || extractKey('image');
-            const website = extractAfter('Personal website') || extractKey('website');
-            const order = extractAfter('Ordering') || extractKey('order');
+
             if (!name || !image) {
-              core.setFailed('Missing required fields: name and image');
+              core.info('Missing required fields: name and/or image. Skipping.');
+              core.setOutput('found', 'false');
               return;
             }
+            const slugify = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
             let slug = slugify(name);
-            if (!slug) {
-              // Fallback: use 'user-' + timestamp to ensure non-empty, unique slug
-              slug = 'user-' + Date.now();
-              core.warning('Generated slug was empty. Using fallback slug: ' + slug);
-            }
+            if (!slug) { slug = 'user-' + Date.now(); }
+
+            core.setOutput('found', 'true');
             core.setOutput('name', name);
-            core.setOutput('role', role);
-            core.setOutput('affiliation', affiliation);
+            core.setOutput('role', role || '');
+            core.setOutput('affiliation', affiliation || '');
             core.setOutput('image', image);
-            core.setOutput('website', website);
-            core.setOutput('order', order);
+            core.setOutput('website', website || '');
+            core.setOutput('order', order || '');
             core.setOutput('slug', slug);
 
       - name: Create working branch
+        if: steps.parse.outputs.found == 'true'
         run: |
           base="${{ github.event.repository.default_branch }}"
           git checkout -b add-member/${{ steps.parse.outputs.slug }} origin/$base || git checkout -b add-member/${{ steps.parse.outputs.slug }}
 
       - name: Ensure directories
+        if: steps.parse.outputs.found == 'true'
         run: |
           mkdir -p src/content/members src/assets/members
 
       - name: Download image if URL
         id: dl
+        if: steps.parse.outputs.found == 'true'
         run: |
           IMG="${{ steps.parse.outputs.image }}"
           if echo "$IMG" | grep -qi '^http'; then
@@ -104,13 +145,14 @@ jobs:
           fi
 
       - name: Write member file
+        if: steps.parse.outputs.found == 'true'
         run: |
           cat > src/content/members/${{ steps.parse.outputs.slug }}.md <<EOF
           ---
           name: "${{ steps.parse.outputs.name }}"
           role: "${{ steps.parse.outputs.role }}"
           affiliation: "${{ steps.parse.outputs.affiliation }}"
-          image: "${{ steps.dl.outputs.path }}"
+          image: "${{ steps.parse.outputs.image }}"
           website: "${{ steps.parse.outputs.website }}"
           order: ${{ steps.parse.outputs.order }}
           tags: ["member"]
@@ -118,6 +160,7 @@ jobs:
           EOF
 
       - name: Commit changes
+        if: steps.parse.outputs.found == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -125,10 +168,12 @@ jobs:
           git commit -m "chore(members): add ${{ steps.parse.outputs.slug }} via issue" || echo "No changes to commit"
 
       - name: Push branch
+        if: steps.parse.outputs.found == 'true'
         run: |
           git push -u origin HEAD || true
 
       - name: Open PR
+        if: steps.parse.outputs.found == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
