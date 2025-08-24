@@ -34,18 +34,39 @@ jobs:
               const m = line.match(/^\s*([A-Za-z0-9_]+)\s*:\s*"?(.*?)"?\s*$/);
               if (m) data[m[1]] = m[2];
             }
+            const invalids = new Set(['', '_no response_', 'n/a', 'na', 'none', 'null', 'remote url (link)']);
+            const sanitizeWebsite = (u) => {
+              const s = (u || '').trim();
+              if (invalids.has(s.toLowerCase())) return 'https://example.com';
+              try { new URL(s); return s; } catch { return 'https://example.com'; }
+            };
+            const sanitizeImage = (img) => {
+              const s = (img || '').trim();
+              if (invalids.has(s.toLowerCase())) return '../../assets/vista.jpg';
+              if (/^https?:/i.test(s)) return s;
+              if (/^(\.\.\/){1,2}?assets\//i.test(s) || /^src\//i.test(s)) return s;
+              return '../../assets/vista.jpg';
+            };
+            const sanitizeOrder = (_) => 999;
             const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
             const slug = slugify(data.name || 'member');
+            const name = (data.name || '').trim();
+            const role = (data.role || '').trim();
+            const affiliation = (data.affiliation || '').trim();
+            const image = sanitizeImage(data.image);
+            const website = sanitizeWebsite(data.website);
+            const order = String(sanitizeOrder(data.order));
+
             core.setOutput('found', 'true');
-            core.setOutput('name', data.name || '');
-            core.setOutput('role', data.role || '');
-            core.setOutput('affiliation', data.affiliation || '');
-            core.setOutput('image', data.image || '');
-            core.setOutput('website', data.website || '');
-            core.setOutput('order', String(data.order ?? ''));
+            core.setOutput('name', name);
+            core.setOutput('role', role);
+            core.setOutput('affiliation', affiliation);
+            core.setOutput('image', image);
+            core.setOutput('website', website);
+            core.setOutput('order', order);
             core.setOutput('slug', slug);
-            if (!data.name || !data.image) {
-              core.setFailed('Missing required fields: name and/or image');
+            if (!name) {
+              core.setFailed('Missing required field: name');
               return;
             }
 

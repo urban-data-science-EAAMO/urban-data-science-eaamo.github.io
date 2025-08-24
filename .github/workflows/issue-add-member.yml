@@ -97,8 +97,27 @@ jobs:
               if (mt) name = mt[1].trim();
             }
 
-            if (!name || !image) {
-              core.info('Missing required fields: name and/or image. Skipping.');
+            const invalids = new Set(['', '_no response_', 'n/a', 'na', 'none', 'null', 'remote url (link)']);
+            const sanitizeWebsite = (u) => {
+              const s = (u || '').trim();
+              if (invalids.has(s.toLowerCase())) return 'https://example.com';
+              try { new URL(s); return s; } catch { return 'https://example.com'; }
+            };
+            const sanitizeImage = (img) => {
+              const s = (img || '').trim();
+              if (invalids.has(s.toLowerCase())) return '../../assets/vista.jpg';
+              if (/^https?:/i.test(s)) return s;
+              if (/^(\.\.\/){1,2}?assets\//i.test(s) || /^src\//i.test(s)) return s;
+              return '../../assets/vista.jpg';
+            };
+            const sanitizeOrder = (_) => 999;
+
+            website = sanitizeWebsite(website);
+            image = sanitizeImage(image);
+            order = String(sanitizeOrder(order));
+
+            if (!name) {
+              core.info('Missing required field: name. Skipping.');
               core.setOutput('found', 'false');
               return;
             }
@@ -112,7 +131,7 @@ jobs:
             core.setOutput('affiliation', affiliation || '');
             core.setOutput('image', image);
             core.setOutput('website', website || '');
-            core.setOutput('order', order || '');
+            core.setOutput('order', order || '999');
             core.setOutput('slug', slug);
 
       - name: Create working branch
