@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
             const body = context.payload.pull_request?.body || '';
             const match = body.match(/<!-- MEMBER-INFO-START -->[\s\S]*?```yaml([\s\S]*?)```[\s\S]*?<!-- MEMBER-INFO-END -->/);
             if (!match) {
-              core.setOutput('found', 'false');
+              core.setFailed('PR is missing MEMBER-INFO YAML block');
               return;
             }
             // Minimal YAML parser for simple key: value pairs used here
@@ -44,6 +44,10 @@ jobs:
             core.setOutput('website', data.website || '');
             core.setOutput('order', String(data.order ?? ''));
             core.setOutput('slug', slug);
+            if (!data.name || !data.image) {
+              core.setFailed('Missing required fields: name and/or image');
+              return;
+            }
 
       - name: Ensure members assets directory
         if: steps.extract.outputs.found == 'true'
@@ -106,5 +110,13 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.head_ref }}
+
+      - name: Enable auto-merge
+        if: steps.extract.outputs.found == 'true'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
 
 

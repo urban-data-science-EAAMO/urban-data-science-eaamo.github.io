@@ -68,7 +68,7 @@ jobs:
               },
               enforce_admins: true,
               required_pull_request_reviews: {
-                required_approving_review_count: 1,
+                required_approving_review_count: 0,
               },
               restrictions: null,
               required_linear_history: false,
@@ -80,6 +80,18 @@ jobs:
               allow_fork_syncing: true,
             });
             core.info(`Updated protection on ${owner}/${repo}@${branch} with required checks: ${mergedContexts.join(', ')}`);
+
+      - name: Enable repo auto-merge and delete-branch-on-merge
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADMIN_TOKEN }}
+          script: |
+            await github.rest.repos.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              allow_auto_merge: true,
+              delete_branch_on_merge: true,
+            });
 
       - name: Summary
         run: |
