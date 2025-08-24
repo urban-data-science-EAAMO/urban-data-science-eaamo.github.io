@@ -1,0 +1,65 @@
+---
+import Layout from "@layouts/Layout.astro";
+const successParam = Astro.url.searchParams.get('success');
+const successURL = new URL('/join?success=1', Astro.url.origin).href;
+---
+
+<Layout title="Join Us | Urban Data Science & Equitable Cities" pageType="other">
+  <main id="main-content" class="pt-24">
+    <section class="join-container">
+      <div class="join-header">
+        <h1 class="join-title">Urban Data Science & Equitable Cities</h1>
+        <p class="join-subtitle">Subscribe to our mailing list to receive updates on talks, activities, and collaborations.</p>
+      </div>
+
+      {successParam === '1' ? (
+        <div class="join-success" role="status" aria-live="polite">
+          <h2 class="join-success-title">Thanks for subscribing!</h2>
+          <p class="join-success-body">Please check your email for a confirmation message from Cornell Lists to complete your subscription.</p>
+          <div class="join-links">
+            <a class="underline" href="/" rel="noopener">Return home</a>
+          </div>
+        </div>
+      ) : (
+      <form class="join-form" action="https://www.list.cornell.edu/subscribe/subscribe.tml" method="POST">
+        <div class="form-grid">
+          <label for="email" class="form-label">Email address<span aria-hidden="true">*</span></label>
+          <div class="form-field">
+            <input id="email" name="email" type="email" class="join-input" required />
+          </div>
+          <div class="form-action">
+            <button type="submit" class="join-btn" name="subscribe" value="Subscribe" title="Subscribe">Subscribe</button>
+          </div>
+
+          <label for="name" class="form-label">Your name<span aria-hidden="true">*</span></label>
+          <div class="form-field span-2">
+            <input id="name" name="name" type="text" class="join-input" maxlength="100" required />
+          </div>
+        </div>
+
+        <!-- Hidden fields required by Cornell list service -->
+        <input type="hidden" name="list" value="urban-data-science-rg-l" />
+        <input type="hidden" name="lists" value="urban-data-science-rg-l" />
+        <input type="hidden" name="demographics" value="" />
+        <input type="hidden" name="name_required" value="T" />
+        <input type="hidden" name="pw_required" value="" />
+        <input type="hidden" name="confirm" value="one" />
+        <input type="hidden" name="showconfirm" value="T" />
+        <input type="hidden" name="url" value={successURL} />
+        <input type="hidden" name="appendsubinfotourl" value="" />
+        <input type="hidden" name="secx" value="880cb564" />
+
+        <p class="join-footnote">We respect your inbox. You can unsubscribe at any time.</p>
+      </form>
+      )}
+
+      <div class="join-links">
+        <a class="underline" href="https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/" target="_blank" rel="noopener">Official Working Group Page</a>
+        <span aria-hidden>·</span>
+        <a class="underline" href="https://bridges.eaamo.org/" target="_blank" rel="noopener">EAAMO Bridges</a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+

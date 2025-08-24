@@ -1,0 +1,136 @@
+---
+// src/pages/profile/[username].astro
+import Photog from '../../components/Photog.astro';
+import AddPhoto from '../../components/AddPhoto.astro';
+import Layout from '../../layouts/Layout.astro';
+import { db } from '../../db';
+import { users, posts } from '../../db/schema';
+import { eq } from 'drizzle-orm';
+import { validateSession } from '../../lib/auth';
+import { sql } from 'drizzle-orm';
+import '../../scripts/lightbox';
+
+export const prerender = false;
+
+const { username } = Astro.params;
+if (!username) {
+  return Astro.redirect('/404');
+}
+
+// Get logged in user from JWT
+let session = null;
+try {
+  session = await validateSession(Astro.request);
+} catch (error) {
+  console.error('Profile page - Session error:', error);
+}
+
+const isOwnProfile = session?.username === username;
+
+// Fetch user data
+let userData = {
+  username: username,
+  avatar: '/assets/profile_photo.png',
+  posts: 0,
+  followers: 0,
+  following: 0,
+  bio: 'Welcome to my profile'
+};
+
+try {
+  const user = await db.select().from(users).where(eq(users.username, username)).get();
+  
+  if (!user) {
+    return Astro.redirect('/404');
+  }
+
+  // This is the fixed query to count posts
+  const postCount = await db
+    .select({
+      count: sql`count(*)`
+    })
+    .from(posts)
+    .where(eq(posts.userId, user.id))
+    .get();
+
+  userData = {
+    ...userData,
+    userId: user.id,
+    posts: postCount?.count || 0,
+  };
+
+  console.log('User data:', userData);
+} catch (error) {
+  console.error('Profile page - Database error:', error);
+}
+---
+
+<Layout title={`${username}'s Profile`}>
+  <main class="min-h-screen bg-black text-gray-200">
+    <div class="container max-w-6xl mx-auto px-4 py-12">
+      {isOwnProfile && (
+        <div class="mb-12">
+          <button
+            id="toggleAddPhoto"
+            class="px-6 py-2 bg-gray-900 text-gray-200 rounded-lg 
+                   border border-gray-700 hover:bg-gray-800 
+                   transition-colors focus:outline-none focus:ring-1 
+                   focus:ring-gray-600 text-sm font-medium tracking-wide"
+          >
+            <span id="toggleButtonText">+ Add New Photo</span>
+          </button>
+          
+          <div id="addPhotoContainer" class="hidden mt-6 transition-opacity duration-200">
+            <AddPhoto />
+          </div>
+        </div>
+      )}
+      
+      <Photog {...userData} />
+    </div>
+  </main>
+</Layout>
+
+<script>
+  function initializeAddPhoto() {
+    const toggleButton = document.getElementById('toggleAddPhoto');
+    const buttonText = document.getElementById('toggleButtonText');
+    const container = document.getElementById('addPhotoContainer');
+    
+    if (toggleButton && container && buttonText) {
+      let isExpanded = false;
+
+      toggleButton.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        
+        if (isExpanded) {
+          // Show the container
+          container.classList.remove('hidden');
+          container.style.opacity = '0';
+          requestAnimationFrame(() => {
+            container.style.opacity = '1';
+          });
+          buttonText.textContent = '− Close';
+        } else {
+          // Hide the container
+          container.style.opacity = '0';
+          container.addEventListener('transitionend', function handler() {
+            container.classList.add('hidden');
+            container.removeEventListener('transitionend', handler);
+          });
+          buttonText.textContent = '+ Add New Photo';
+        }
+      });
+    }
+  }
+
+  import { initializeLightbox } from '../../scripts/lightbox';
+  
+  // Initialize on both DOMContentLoaded and astro:page-load
+  document.addEventListener('DOMContentLoaded', initializeLightbox);
+  document.addEventListener('astro:page-load', initializeLightbox);
+
+  // Initialize on both DOMContentLoaded and astro:page-load
+  document.addEventListener('DOMContentLoaded', initializeAddPhoto);
+  document.addEventListener('astro:page-load', initializeAddPhoto);
+</script>

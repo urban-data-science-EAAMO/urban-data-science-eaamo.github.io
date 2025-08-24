@@ -1,0 +1,29 @@
+---
+import Hr from "./Hr.astro";
+import Socials from "./Socials.astro";
+
+const currentYear = new Date().getFullYear();
+
+export interface Props {
+  noMarginTop?: boolean;
+}
+
+const { noMarginTop = false } = Astro.props;
+---
+
+<footer class={`${noMarginTop ? "" : "mt-auto"}`}>
+  <div class="footer-container">
+    <div class="footer-wrapper">
+      <div class="social-icons-wrapper">
+        <Socials centered />
+      </div>
+      <div class="copyright-wrapper">
+        <span>© {currentYear} EAAMO Bridges — Urban Data Science & Equitable Cities</span>
+        <span class="separator">&nbsp;|&nbsp;</span>
+        <a href="https://bridges.eaamo.org/" target="_blank" rel="noopener">EAAMO Bridges</a>
+        <span class="separator">&nbsp;|&nbsp;</span>
+        <a href="https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/" target="_blank" rel="noopener">Working Group</a>
+      </div>
+    </div>
+  </div>
+</footer>

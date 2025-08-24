@@ -1,0 +1,306 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "@layouts/Layout.astro";
+import Header from "@components/Header.astro";
+import Footer from "@components/Footer.astro";
+import LinkButton from "@components/LinkButton.astro";
+import Hr from "@components/Hr.astro";
+import ProjectCard from "@components/ProjectCard";
+import Socials from "@components/Socials.astro";
+import { SITE, SOCIALS } from "@config";
+
+const projects = await getCollection("projects");
+const speakers = await getCollection("speakers");
+const sortedSpeakers = speakers.sort((a, b) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
+
+// Sort projects by order field
+const sortedProjects = projects.sort((a, b) => 
+  (a.data.order || Infinity) - (b.data.order || Infinity)
+);
+
+//
+
+// Members collection
+const members = await getCollection("members");
+const sortedMembers = members.sort((a, b) => (a.data.order || 9999) - (b.data.order || 9999));
+
+const socialCount = SOCIALS.filter(social => social.active).length;
+---
+
+<Layout pageType="home">
+  <Header />
+  <main id="main-content" class="home-content pt-32 px-0"> 
+    <div class="left-col">
+      <section id="hero">
+        <h1 class="site-logo text-3xl font-bold mb-4">Urban Data Science & Equitable Cities</h1>
+        {
+          // only display if at least one social link is enabled
+          socialCount > 0 && false && (
+            <div class="social-wrapper">
+              <div class="social-links"></div>
+              <Socials />
+            </div>
+          )
+        }
+        <p>
+          By 2050, the UN projects that 68% of the population will live in a city. With urban life shaping health and opportunity, using data to guide decisions and reduce inequality is critical. In this EAAMO Bridges working group, we host speakers, study papers, and workshop late-stage work on computational analysis of urban data, emphasizing topics that explore and address inequities in urban life. We meet every other week for a presentation followed by sustained discussion. See our official page for details.
+          <br><br>
+
+        </p>
+        <div class="home-cta">
+          <LinkButton className="btn-primary" href="/join/">Join Us</LinkButton>
+          <LinkButton className="btn-secondary" href="https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/">Official Bridges Page</LinkButton>
+        </div>
+      </section>
+      <section id="speakers">
+        <h3 class="subsection-heading">Recent Speakers & Activites</h3>
+        <div class="talks-list home-talks">
+          {sortedSpeakers.slice(0, 4).map(({ data }) => (
+            <article class="talk-card">
+              <div class="talk-date">
+                {data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+              <h3 class="talk-title">{data.talkTitle}</h3>
+              <div class="talk-meta">
+                <span class="talk-speaker">{data.name}</span>
+                {data.affiliation && <span class="talk-divider">·</span>}
+                {data.affiliation && <span class="talk-affiliation">{data.affiliation}</span>}
+              </div>
+              {data.abstract && <p class="talk-abstract">{data.abstract}</p>}
+              <div class="talk-links">
+                {data.website && (<a class="talk-link" href={data.website} target="_blank" rel="noopener">Website</a>)}
+                {data.slidesUrl && (<a class="talk-link" href={data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
+                {data.recordingUrl && (<a class="talk-link" href={data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
+              </div>
+            </article>
+          ))}
+        </div>
+        <div class="all-posts-btn-wrapper">
+          <LinkButton href="/events/">
+            All Talks
+            <svg xmlns="http://www.w3.org/2000/svg">
+              <path d="m11.293 17.293 1.414 1.414L19.414 12l-6.707-6.707-1.414 1.414L15.586 11H6v2h9.586z"></path>
+            </svg>
+          </LinkButton>
+        </div>
+      </section>
+    </div>
+    <div class="right-col">
+      <section id='selected-work'>
+        <h2 class="main-section-heading">Projects</h2>
+        
+        <!-- Add a spacer div for extra vertical space -->
+        <div class="section-spacer"></div>
+        
+        <!-- All projects section -->
+        {sortedProjects.length > 0 && (
+          <>
+            <div class="projects-section-wrapper">
+              <div class="projects-grid-container" id="projects-grid-container">
+                <div class="projects-grid">
+                  {sortedProjects.map(project => (
+                    <ProjectCard project={project} client:load />
+                  ))}
+                </div>
+              </div>
+              <div class="scroll-indicator" id="projects-scroll-indicator">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7c-.38-.38-1.02-.38-1.41.01z"/>
+                </svg>
+              </div>
+            </div>
+          </>
+        )}
+
+        <!-- Members grid -->
+        {sortedMembers.length > 0 && (
+          <>
+            <h3 class="subsection-heading mt-6">Members</h3>
+            <div class="projects-section-wrapper">
+              <div class="projects-grid-container" id="members-grid-container">
+                <div class="projects-grid members-grid">
+                  {sortedMembers.map(member => (
+                    <div class="member-card">
+                      <div class="member-photo">
+                        {member.data.image ? (
+                          typeof member.data.image === 'string' ? (
+                            <img 
+                              src={member.data.image} 
+                              alt={member.data.name} 
+                              loading="lazy" 
+                            />
+                          ) : (
+                            <img 
+                              src={member.data.image.src} 
+                              alt={member.data.name} 
+                              width={member.data.image.width}
+                              height={member.data.image.height}
+                              loading="lazy" 
+                            />
+                          )
+                        ) : (
+                          <div class="member-photo-placeholder"></div>
+                        )}
+                      </div>
+                      <div class="member-info">
+                        <div class="member-name">{member.data.name}</div>
+                        {member.data.affiliation && <div class="member-affiliation">{member.data.affiliation}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  </main>
+  <Footer />
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const heroLogo = document.getElementById('hero-logo');
+      const headerLogo = document.getElementById('header-logo');
+      const logoLink = document.getElementById('logo-link');
+      
+      if (heroLogo && headerLogo && logoLink) {
+        // Store original positions after DOM is fully loaded
+        const heroLogoRect = heroLogo.getBoundingClientRect();
+        const headerLogoRect = headerLogo.getBoundingClientRect();
+        
+        // Save original positions
+        const heroTop = heroLogoRect.top;
+        const heroLeft = heroLogoRect.left;
+        const headerTop = headerLogoRect.top;
+        const headerLeft = headerLogoRect.left;
+        
+        // Initial state
+        if (window.scrollY === 0) {
+          headerLogo.style.opacity = '0';
+          heroLogo.style.opacity = '1';
+        } else {
+          headerLogo.style.opacity = '1';
+          heroLogo.style.opacity = '0';
+        }
+        
+        // Smooth scroll handling
+        window.addEventListener('scroll', () => {
+          const scrollY = window.scrollY;
+          
+          // Define the transition zone 
+          const transitionStart = 0;
+          const transitionEnd = 100; // shorter transition zone
+          
+          if (scrollY <= transitionStart) {
+            // Before transition: hero logo visible, in original position
+            heroLogo.style.position = 'relative';
+            heroLogo.style.top = '0';
+            heroLogo.style.left = '0';
+            heroLogo.style.transform = 'none';
+            heroLogo.style.opacity = '1';
+            headerLogo.style.opacity = '0';
+          } else if (scrollY > transitionStart && scrollY < transitionEnd) {
+            // During transition: smoothly animate position and opacity
+            const progress = (scrollY - transitionStart) / (transitionEnd - transitionStart);
+            
+            // Position heroLogo absolutely during transition
+            heroLogo.style.position = 'fixed';
+            heroLogo.style.top = `${headerTop}px`;
+            
+            // Calculate the left position difference and interpolate
+            const leftDiff = headerLeft - heroLeft;
+            heroLogo.style.left = `${heroLeft + (leftDiff * progress)}px`;
+            
+            // Scale down during transition
+            const initialScale = 1;
+            const targetScale = 0.8;
+            heroLogo.style.transform = `scale(${initialScale - ((initialScale - targetScale) * progress)})`;
+            
+            // Crossfade between logos
+            heroLogo.style.opacity = (1 - progress).toString();
+            headerLogo.style.opacity = progress.toString();
+          } else {
+            // After transition: header logo fully visible
+            heroLogo.style.opacity = '0';
+            headerLogo.style.opacity = '1';
+          }
+        });
+        
+        // Recalculate on resize
+        window.addEventListener('resize', () => {
+          const newHeroRect = heroLogo.getBoundingClientRect();
+          const newHeaderRect = headerLogo.getBoundingClientRect();
+          
+          // Update position values
+          const heroTop = newHeroRect.top;
+          const heroLeft = newHeroRect.left;
+          const headerTop = newHeaderRect.top;
+          const headerLeft = newHeaderRect.left;
+        });
+      }
+    });
+
+    // Scroll indicator functionality
+    const initScrollIndicators = () => {
+      const gridContainers = document.querySelectorAll('.projects-grid-container');
+      
+      gridContainers.forEach(container => {
+        const grid = container.querySelector('.projects-grid');
+        const wrapper = container.closest('.projects-section-wrapper');
+        const indicator = wrapper ? wrapper.querySelector('.scroll-indicator') : null;
+        
+        if (!grid || !indicator || !wrapper) return;
+        
+        const checkScroll = () => {
+          // Show indicator only if there's content to scroll to
+          if (grid.scrollWidth > container.clientWidth) {
+            // Check if we've scrolled to the end
+            const isEnd = Math.ceil(container.scrollLeft + container.clientWidth) >= grid.scrollWidth;
+            
+            if (!isEnd) {
+              indicator.classList.add('show');
+            } else {
+              indicator.classList.remove('show');
+            }
+          } else {
+            indicator.classList.remove('show');
+          }
+        };
+        
+        // Setup indicator click action
+        indicator.addEventListener('click', () => {
+          container.scrollBy({ 
+            left: 300, 
+            behavior: 'smooth' 
+          });
+        });
+        
+        // Add scroll event listener
+        container.addEventListener('scroll', checkScroll);
+        
+        // Check on load and resize
+        checkScroll();
+        window.addEventListener('resize', checkScroll);
+        
+        // Show indicator with a slight delay for better UX
+        setTimeout(checkScroll, 500);
+      });
+    };
+    
+    // Initialize scroll indicators
+    initScrollIndicators();
+
+    // Debug helper function
+    (window as any).debugReact = function(message: string) {
+      console.log(`[Debug] ${message}`);
+      const debugElement = document.getElementById('react-debug');
+      if (debugElement) {
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+        debugElement.innerHTML += `<div>${timeStr} - ${message}</div>`;
+      }
+    };
+  </script>
+
+</Layout>

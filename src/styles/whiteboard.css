@@ -1,0 +1,320 @@
+/* Simplified whiteboard with no window - mobile-first performance */
+
+/* Main whiteboard container - simplified transforms */
+.whiteboard-container,
+.transform-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  /* Simplified 2D transform for mobile compatibility */
+  transform: translate(-50%, -50%) translate(var(--translateX, 0), var(--translateY, 0)) scale(var(--scale, 1));
+  transform-origin: center center;
+  z-index: 1;
+  /* Remove aggressive containment that clips content in production */
+  overflow: visible;
+}
+
+/* Disable browser touch gestures on mobile */
+@media (max-width: 768px) {
+  .transform-container {
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* Buttery smooth transitions for zoom and pan on all platforms */
+.whiteboard-container.is-transitioning,
+.transform-container.is-transitioning {
+  transition: transform 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.whiteboard-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Remove size containment that can clip expanded content */
+  overflow: visible;
+  z-index: 3;
+}
+
+/* Sticky note positioning - mobile optimized */
+.draggable-area {
+  position: absolute;
+  transform-origin: center center;
+  /* Simplified 2D transform for better mobile performance */
+  transform: translate(-50%, -50%) translate(var(--item-x, 0px), var(--item-y, 0px)) rotate(var(--item-rotation, 0deg));
+  z-index: var(--item-z, 1);
+  width: var(--item-width, 280px);
+  height: var(--item-height, 320px);
+  top: 50%;
+  left: 50%;
+  /* Ensure no clipping of expanded content */
+  overflow: visible;
+}
+
+.draggable-area .sticky-note {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Content should be contained within the card */
+  overflow: hidden;
+}
+
+.draggable-area:active {
+  cursor: grabbing;
+}
+
+/* Simplified Sticky Note Styles - no complex 3D effects */
+.sticky-note {
+  position: relative;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+  /* Simple flat shadow for all devices */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  /* Default sticky note color will be overridden by component */
+  background-color: #fff68f; 
+  /* Remove complex 3D properties */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Desktop-only subtle animations */
+@media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
+  .sticky-note:not(.mobile-optimized):not(.is-interacting) {
+    /* Very subtle float animation for desktop only */
+    animation: gentle-float 4s ease-in-out infinite;
+  }
+}
+
+/* Card content wrapper */
+.sticky-note-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* Gentle desktop-only animation */
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Interaction states */
+.sticky-note.is-resized {
+  /* Remove fixed percentage sizing - let the container handle sizing */
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Add smooth transitions for expand/collapse */
+.draggable-area:not(.is-interacting) {
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.sticky-note.is-interacting {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  /* Pause any animations during interaction */
+  animation-play-state: paused !important;
+}
+
+.sticky-note.is-transitioning-size {
+  animation-play-state: paused !important;
+}
+
+/* Mobile optimizations - disable complex effects but preserve colors */
+.mobile-optimized .sticky-note {
+  /* Simplified rendering for mobile - keep post-it colors */
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  will-change: auto !important;
+  /* Content should be contained within the card boundaries */
+  overflow: hidden !important;
+  /* Don't override background - preserve component colors */
+}
+
+.mobile-optimized .transform-container,
+.mobile-optimized .whiteboard-container {
+  /* Simplified transforms for mobile */
+  transform: translate(-50%, -50%) translate(var(--translateX, 0), var(--translateY, 0)) scale(var(--scale, 1));
+  /* Remove aggressive containment and visibility properties that clip in production */
+  overflow: visible;
+  will-change: none;
+  /* Use same smooth timing for mobile when transitioning */
+}
+
+.mobile-optimized .whiteboard-content {
+  /* Remove aggressive containment that clips content in production */
+  overflow: visible;
+  will-change: none;
+}
+
+.mobile-optimized .draggable-area {
+  /* Remove strict containment that clips expanded cards in production */
+  overflow: visible;
+  will-change: none;
+  transform: translate(-50%, -50%) translate(var(--item-x, 0px), var(--item-y, 0px)) rotate(var(--item-rotation, 0deg)) !important;
+}
+
+/* Performance mode classes */
+.perf-low .sticky-note,
+.perf-minimal .sticky-note {
+  /* Disable all animations and effects in low performance mode */
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  /* Don't override background - preserve post-it colors */
+}
+
+.perf-medium .sticky-note {
+  /* Reduced animations for medium performance */
+  animation-duration: 8s !important;
+  animation-timing-function: ease-in-out !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Remove complex 3D effects completely when not supported */
+.disable-animations .sticky-note,
+.simplify-effects .sticky-note {
+  animation: none !important;
+  transform: none !important;
+  transform-style: flat !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Pause animations during scrolling/zooming for performance */
+.is-transitioning .sticky-note,
+.is-scrolling .sticky-note {
+  animation-play-state: paused !important;
+}
+
+/* Enhanced etched content styling - simplified for mobile */
+.sticky-note.etched-content {
+  /* Simple border instead of complex shadows */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Force most container backgrounds to be transparent but preserve buttons */
+.sticky-note.etched-content .sticky-note-content * {
+  background-color: transparent !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  box-shadow: none !important;
+}
+
+/* Preserve expand button styling */
+.sticky-note.etched-content .etched-button {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* Remove complex background patterns */
+.sticky-note.etched-content .rounded-lg,
+.sticky-note.etched-content .bg-gray-900,
+.sticky-note.etched-content .bg-gray-800,
+.sticky-note.etched-content .bg-blue-900,
+.sticky-note.etched-content .bg-zinc-900,
+.sticky-note.etched-content [class*="bg-"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Simplified text styling */
+.etched-text {
+  color: rgba(0, 0, 0, 0.8);
+  text-shadow: none; /* Remove text shadows for better mobile performance */
+}
+
+.etched-text .text-white,
+.etched-text .text-gray-100,
+.etched-text .text-gray-200,
+.etched-text .text-blue-100,
+.etched-text .text-blue-200,
+.etched-text .text-cyan-100,
+.etched-text .text-cyan-200,
+.etched-text [class*="text-"] {
+  color: rgba(0, 0, 0, 0.8) !important;
+  text-shadow: none !important;
+}
+
+.etched-text h1, .etched-text h2, .etched-text h3 {
+  color: rgba(0, 0, 0, 0.9) !important;
+  text-shadow: none !important;
+}
+
+/* Simplified button styling */
+.etched-button {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
+}
+
+.etched-button svg {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Remove complex decorations */
+.sticky-note.etched-content .rounded-lg,
+.sticky-note.etched-content div[class*="rounded"],
+.sticky-note.etched-content div[class*="p-"] {
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* Add simple structural lines */
+.sticky-note.etched-content .rounded-lg,
+.sticky-note.etched-content div[class*="rounded"] {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 0.5rem;
+}
+
+/* Mobile optimization for very small screens - preserve colors */
+@media (max-width: 480px) {
+  .mobile-optimized .sticky-note {
+    /* Preserve post-it colors but simplify other visual complexity */
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    padding: 0.5rem !important;
+    /* Don't override background - let component colors show through */
+  }
+  
+  .mobile-optimized .draggable-area {
+    /* Reduce size on very small screens */
+    width: calc(var(--item-width, 280px) * 0.8) !important;
+    height: calc(var(--item-height, 320px) * 0.8) !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .sticky-note {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

@@ -1,0 +1,150 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { db } from '../../../db';
+import { users, posts } from '../../../db/schema';
+import { eq } from 'drizzle-orm';
+import '../../../styles/photog.css';
+
+const { username } = Astro.params;
+if (!username) {
+  return Astro.redirect('/404');
+}
+
+let userPosts = [];
+let userData = null;
+
+try {
+  const user = await db.select().from(users).where(eq(users.username, username)).get();
+  
+  if (!user) {
+    return Astro.redirect('/404');
+  }
+
+  userData = user;
+  
+  // First get posts without username
+  const userPosts = await db
+  .select({
+    id: posts.id,
+    imageUrl: posts.imageUrl,
+    caption: posts.caption,
+    createdAt: posts.createdAt,
+    userId: posts.userId,
+    borderColor: posts.borderColor,
+  })
+  .from(posts)
+  .where(eq(posts.userId, user.id));
+
+// Get tags for each post
+const postsWithTags = await Promise.all(userPosts.map(async (post) => {
+const postTags = await db
+    .select({
+    name: tags.name
+    })
+    .from(tags)
+    .innerJoin(postTags, eq(tags.id, postTags.tagId))
+    .where(eq(postTags.postId, post.id));
+
+return {
+    ...post,
+    tags: postTags,
+    username // Add this if needed for the lightbox
+};
+}));
+---
+
+<Layout title={`${username}'s Posts`}>
+    <main class="min-h-screen bg-black text-gray-200">
+      <div class="container max-w-7xl mx-auto px-4 py-12">
+        <header class="mb-12">
+          <a 
+            href={`/profile/${username}`} 
+            class="inline-flex items-center text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            <span class="mr-2">←</span>
+            Back to Profile
+          </a>
+          <h1 class="text-3xl font-bold mt-6 text-gray-100 tracking-tight">{username}'s Photos</h1>
+        </header>
+  
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+          {userPosts.map(post => (
+            <div 
+            class="photo-card group" 
+            data-post={JSON.stringify(post)}
+            style={post.borderColor ? `border-color: ${post.borderColor}; border-width: 4px;` : ''}
+            >
+            <img 
+                src={post.imageUrl} 
+                alt={post.caption || 'Photo'} 
+                class="group-hover:scale-[1.02]"
+            />
+            <div class="photo-card-overlay group-hover:opacity-100">
+                <div class="absolute bottom-0 left-0 right-0 p-6">
+                {post.caption && (
+                    <p class="text-white text-sm font-light line-clamp-2 mb-2">
+                    {post.caption}
+                    </p>
+                )}
+                {post.tags?.length > 0 && (
+                    <div class="flex flex-wrap gap-2">
+                    {post.tags.map(tag => (
+                        <span class="px-2 py-1 text-xs bg-black/50 text-gray-200 rounded-full">
+                        #{tag.name}
+                        </span>
+                    ))}
+                    </div>
+                )}
+                </div>
+            </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox-overlay">
+      <div class="max-w-7xl mx-auto p-4">
+        <div class="lightbox-container">
+          <button class="lightbox-close-button">
+            <span class="text-2xl">×</span>
+          </button>
+          
+          <div class="flex flex-col md:flex-row">
+            <div class="lightbox-image-container">
+              <img id="lightbox-image" src="" alt="" class="w-full h-auto max-h-[90vh] object-contain">
+            </div>
+            
+            <div class="w-full md:w-96 border-t md:border-l md:border-t-0 border-gray-800">
+              <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 id="lightbox-username" class="text-xl font-medium text-gray-200"></h3>
+                  <time id="lightbox-date" class="text-sm text-gray-500"></time>
+                </div>
+                <p id="lightbox-caption" class="text-gray-400 mb-6 font-light"></p>
+                
+                <div id="lightbox-comments" class="comments-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <script>
+    
+    import { initializeLightbox } from '../../../scripts/lightbox';
+  
+    document.addEventListener('astro:page-load', initializeLightbox);
+  </script>
+
+<style>
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

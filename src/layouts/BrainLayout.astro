@@ -1,0 +1,338 @@
+---
+import { LOCALE, SITE } from "@config";
+import "@styles/base.css";
+import { ViewTransitions } from "astro:transitions";
+import SidebarMenu from "@components/SidebarMenu.astro";
+
+export interface Props {
+  title?: string;
+  author?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalURL?: string;
+}
+
+const {
+  title = SITE.title,
+  author = SITE.author,
+  description = SITE.desc,
+  ogImage = SITE.ogImage,
+  canonicalURL = new URL(Astro.url.pathname, Astro.site).href,
+} = Astro.props;
+
+const socialImageURL = new URL(
+  ogImage ?? SITE.ogImage ?? "og.png",
+  Astro.url.origin
+).href;
+
+// Performance optimization: Mark layout render start time
+const layoutRenderStart = Date.now();
+---
+
+<!DOCTYPE html>
+<html lang={LOCALE.lang ?? "en"}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="" href="/favicon.png" />
+    <link rel="canonical" href={canonicalURL} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- General Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="author" content={author} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={socialImageURL} />
+
+    <!-- Preload critical resources for better performance -->
+    <link rel="preload" href="../assets/vista.jpg" as="image">
+
+    <!-- Performance monitoring script -->
+    <script>
+      // Measure time to first paint 
+      performance.mark('brain-layout-start');
+      
+      // Add class to body when React has hydrated
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.documentElement.classList.add('react-loaded');
+          performance.mark('react-hydrated');
+          performance.measure('hydration-time', 'brain-layout-start', 'react-hydrated');
+        }, 500); // Give a little buffer time for React to fully initialize
+      });
+      
+      // Check for slow connections and apply optimizations
+      if (navigator.connection) {
+        const connection = navigator.connection as any;
+        if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+          document.documentElement.classList.add('slow-connection');
+        }
+        
+        if (connection.saveData) {
+          document.documentElement.classList.add('save-data');
+        }
+      }
+    </script>
+
+    <ViewTransitions />
+    <script is:inline src="/toggle-theme.js"></script>
+  </head>
+  <body class="bg-black">
+    <div class="">
+      <slot />
+    </div>
+    
+    <div class="sidebar-button" id="sidebarButton">
+      <button class="p-2 rounded-full bg-zinc-900/90 backdrop-blur-sm">
+        <span class="sr-only">Toggle menu</span>
+        <!-- Add menu icon -->
+      </button>
+    </div>
+    <SidebarMenu />
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #2c2c2c;
+    background-image: 
+      linear-gradient(
+        to right,
+        rgba(255,255,255,0.05) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.05) 1px,
+        transparent 1px
+      );
+    background-size: 20px 20px;
+    /* Ensure proper overflow handling in production */
+    overflow: visible;
+  }
+  
+  html {
+    /* Ensure the root element allows overflow for expanded cards */
+    overflow: visible;
+  }
+
+  .sidebar-button {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 50;
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .sidebar-button button {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .sidebar-button button:hover {
+    transform: scale(1.1);
+  }
+
+  .sidebar-button.sidebar-open {
+    transform: translateX(240px);
+  }
+
+  :global(.nav-menu) {
+    position: fixed;
+    top: 0;
+    left: -240px;
+    width: 240px;
+    height: 100vh;
+    background: var(--color-bg);
+    padding: 2rem;
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
+    z-index: 40;
+  }
+
+  :global(.nav-menu.open) {
+    transform: translateX(240px);
+  }
+  
+  /* Performance optimization styles */
+  :global(.react-loaded) #brain-loading {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  :global(.slow-connection) .nature-scene,
+  :global(.save-data) .nature-scene {
+    filter: none !important;
+    image-rendering: optimizeSpeed !important;
+  }
+
+  /* Performance mode specific styles */
+  :global(.perf-medium) .sticky-note {
+    animation-duration: calc(var(--flutter-duration, 8s) * 1.5) !important;
+  }
+  :global(.perf-low) .sticky-note {
+    animation-duration: calc(var(--flutter-duration, 8s) * 2) !important;
+  }
+  :global(.simplify-effects) .sticky-note {
+    transform-style: flat !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  :global(.disable-animations) .sticky-note {
+    animation: none !important;
+    transform: none !important;
+  }
+</style>
+
+<script>
+  import { initializeMobileOptimizations } from '../utils/mobileOptimizations';
+  
+  // Performance configuration
+  const performanceConfig = {
+    currentPerformanceMode: 'high',
+    verboseLogging: false
+  };
+
+  // Track layout render start time
+  const layoutRenderStart = Date.now();
+
+  // Utility function for performance logging
+  function perfLog(level, message, data) {
+    if (performanceConfig.verboseLogging) {
+      if (data) {
+        console[level](`[PerformanceMonitor] ${message}`, data);
+      } else {
+        console[level](`[PerformanceMonitor] ${message}`);
+      }
+    }
+  }
+
+  // Apply performance mode based on detected capabilities
+  function applyPerformanceMode(mode) {
+    performanceConfig.currentPerformanceMode = mode;
+    
+    // Apply CSS classes based on mode
+    document.documentElement.classList.remove('perf-high', 'perf-medium', 'perf-low', 'perf-minimal');
+    document.documentElement.classList.add(`perf-${mode}`);
+    
+    // Add data attribute for easier CSS targeting
+    document.documentElement.dataset.perfMode = mode;
+    
+    switch (mode) {
+      case 'high':
+        // Default settings
+        break;
+      case 'medium':
+        document.documentElement.classList.add('reduce-animations');
+        break;
+      case 'low':
+        document.documentElement.classList.add('reduce-animations', 'simplify-effects');
+        break;
+      case 'minimal':
+        document.documentElement.classList.add('reduce-animations', 'simplify-effects', 'disable-animations');
+        break;
+    }
+    
+    perfLog('log', `Applied performance mode: ${mode}`);
+    return mode;
+  }
+
+  // Detect device capabilities and apply optimizations
+  function detectDeviceCapabilities() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isLowPowerDevice = isMobile || window.navigator.hardwareConcurrency <= 4;
+    const isHighEndDevice = !isMobile && window.navigator.hardwareConcurrency >= 8;
+    
+    // Set logging based on device capability and environment
+    performanceConfig.verboseLogging = !isLowPowerDevice && import.meta.env.DEV;
+      
+    // Apply performance mode based on detected capabilities
+    if (isLowPowerDevice) {
+      applyPerformanceMode(window.navigator.hardwareConcurrency <= 2 ? 'minimal' : 'low');
+    } else if (!isHighEndDevice) {
+      applyPerformanceMode('medium');
+    } else {
+      applyPerformanceMode('high');
+    }
+    
+    // Check for user preferences
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('reduce-animations');
+    }
+    
+    if (window.matchMedia('(prefers-reduced-data: reduce)').matches) {
+      document.documentElement.classList.add('save-data');
+    }
+    
+    // Monitor for slow frames
+    monitorPerformance();
+    
+    return {
+      isMobile,
+      isLowPowerDevice,
+      cpuCores: window.navigator.hardwareConcurrency || 2,
+      performanceMode: performanceConfig.currentPerformanceMode
+    };
+  }
+
+  // Basic performance monitoring
+  function monitorPerformance() {
+    let lastTime = performance.now();
+    let consecutiveSlowFrames = 0;
+    
+    function checkFrame() {
+      const now = performance.now();
+      const frameTime = now - lastTime;
+      
+      // Check if this frame was slow (less than 30fps)
+      if (frameTime > 33.33) {
+        consecutiveSlowFrames++;
+        
+        // If we have multiple consecutive slow frames, reduce performance mode
+        if (consecutiveSlowFrames >= 5) {
+          if (performanceConfig.currentPerformanceMode === 'high') {
+            applyPerformanceMode('medium');
+          } else if (performanceConfig.currentPerformanceMode === 'medium') {
+            applyPerformanceMode('low');
+          }
+          consecutiveSlowFrames = 0;
+        }
+      } else {
+        consecutiveSlowFrames = 0;
+      }
+      
+      lastTime = now;
+      requestAnimationFrame(checkFrame);
+    }
+    
+    // Start monitoring frames
+    requestAnimationFrame(checkFrame);
+  }
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    // Detect capabilities and apply performance optimizations
+    const capabilities = detectDeviceCapabilities();
+    perfLog('log', 'Device capabilities detected:', capabilities);
+    
+    const sidebarButton = document.getElementById('sidebarButton');
+    const navMenu = document.querySelector('.nav-menu');
+
+    sidebarButton?.addEventListener('click', () => {
+      sidebarButton.classList.toggle('sidebar-open');
+      navMenu?.classList.toggle('open');
+    });
+
+    initializeMobileOptimizations();
+    
+    // Performance logging removed to avoid TypeScript issues
+    console.log('BrainLayout initialized successfully');
+  });
+</script>

@@ -1,0 +1,107 @@
+---
+import Layout from "@layouts/Layout.astro";
+import { getCollection } from "astro:content";
+const speakers = await getCollection("speakers");
+const sortedSpeakers = speakers.sort((a, b) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
+// Group by year for anchors
+const groupedByYear = sortedSpeakers.reduce((acc: Record<number, typeof sortedSpeakers>, entry) => {
+  const year = entry.data.eventDate.getFullYear();
+  (acc[year] ||= [] as any).push(entry);
+  return acc;
+}, {} as Record<number, typeof sortedSpeakers>);
+const years = Object.keys(groupedByYear).map(Number).sort((a, b) => b - a);
+---
+
+<Layout title="Talks | Urban Data Science & Equitable Cities" pageType="other">
+  <main id="main-content" class="pt-24 talks-page">
+    <header class="talks-header">
+      <h1 class="talks-title">Talks</h1>
+      <p class="talks-subtitle">Biweekly talks, activities, and discussions hosted by the EAAMO UDS Working Group.</p>
+    </header>
+
+    <div class="talks-controls">
+      <label for="talks-search" class="sr-only">Search talks</label>
+      <input id="talks-search" class="talks-search" type="search" placeholder="Search talks, speakers, abstracts..." autocomplete="off" />
+      {years.length > 0 && (
+        <nav class="year-nav" aria-label="Years">
+          {years.map(y => (
+            <a href={`#year-${y}`}>{y}</a>
+          ))}
+        </nav>
+      )}
+    </div>
+
+    {years.map(year => (
+      <section id={`year-${year}`} class="talks-year">
+        <h2 class="year-heading">{year}</h2>
+        <div class="talks-list" data-year={year}>
+          {groupedByYear[year].map(({ data }) => (
+            <article class="talk-card" data-keywords={(data.talkTitle + ' ' + data.name + ' ' + (data.affiliation||'') + ' ' + (data.abstract||'')).toLowerCase()}>
+              <div class="talk-date">
+                {data.eventDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+              <h3 class="talk-title">{data.talkTitle}</h3>
+              <div class="talk-meta">
+                <span class="talk-speaker">{data.name}</span>
+                {data.affiliation && <span class="talk-divider">·</span>}
+                {data.affiliation && <span class="talk-affiliation">{data.affiliation}</span>}
+              </div>
+              {data.abstract && <p class="talk-abstract">{data.abstract}</p>}
+              <div class="talk-links">
+                {data.website && (<a class="talk-link" href={data.website} target="_blank" rel="noopener">Website</a>)}
+                {data.slidesUrl && (<a class="talk-link" href={data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
+                {data.recordingUrl && (<a class="talk-link" href={data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <p id="no-results" class="talks-no-results" hidden>No talks match your search.</p>
+
+    <footer class="talks-footer">
+      <a class="underline" href="https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/" target="_blank" rel="noopener">Official Working Group Page</a>
+    </footer>
+  </main>
+</Layout>
+
+<script>
+  const input = document.getElementById('talks-search') as HTMLInputElement | null;
+  const noResults = document.getElementById('no-results') as HTMLElement | null;
+  const sections = Array.from(document.querySelectorAll('.talks-list')) as HTMLElement[];
+
+  const normalize = (s: string) => (s || '').toLowerCase();
+
+  const filter = (q: string) => {
+    const query = normalize(q);
+    let visibleCount = 0;
+
+    sections.forEach((section: HTMLElement) => {
+      let sectionVisible = 0;
+      const sectionCards = Array.from(section.querySelectorAll('.talk-card')) as HTMLElement[];
+      sectionCards.forEach((card: HTMLElement) => {
+        const kw = card.getAttribute('data-keywords') || '';
+        const show = query === '' || kw.includes(query);
+        card.style.display = show ? '' : 'none';
+        if (show) sectionVisible++;
+      });
+      const yearSection = section.closest('.talks-year') as HTMLElement | null;
+      if (yearSection) yearSection.style.display = sectionVisible > 0 ? '' : 'none';
+      visibleCount += sectionVisible;
+    });
+
+    if (noResults) noResults.hidden = visibleCount > 0;
+  };
+
+  let t: number | undefined;
+  input?.addEventListener('input', () => {
+    if (t) window.clearTimeout(t);
+    t = window.setTimeout(() => filter(input.value), 120);
+  });
+
+  // Initialize
+  filter('');
+</script>
+
+

@@ -1,0 +1,99 @@
+---
+import Breadcrumbs from "@components/Breadcrumbs.astro";
+
+interface StringTitleProp {
+  pageTitle: string;
+  pageDesc?: string;
+}
+
+interface ArrayTitleProp {
+  pageTitle: [string, string];
+  titleTransition: string;
+  pageDesc?: string;
+}
+
+export type Props = StringTitleProp | ArrayTitleProp;
+
+const { props } = Astro;
+---
+
+<Breadcrumbs />
+  <main id="main-content" class="pt-32">
+  <div class="content-container">
+    {
+      "titleTransition" in props ? (
+        <h1 class="section-heading">
+          {props.pageTitle[0]}
+          <span transition:name={props.titleTransition}>
+            {props.pageTitle[1]}
+          </span>
+        </h1>
+      ) : (
+        <h1 class="section-heading">{props.pageTitle}</h1>
+      )
+    }
+    {props.pageDesc && <p class="page-desc">{props.pageDesc}</p>}
+    <slot name="title" />
+    <slot />
+  </div>
+</main>
+
+<style>
+  #main-content {
+    @apply mx-auto w-full max-w-4xl px-2 sm:px-4 flex justify-center;
+  }
+  
+  .content-container {
+    @apply w-full max-w-3xl flex flex-col items-center px-2 sm:px-0;
+  }
+  
+  .section-heading {
+    @apply text-2xl font-['GTAmerica-Medium'] mb-4 text-skin-accent text-center;
+  }
+  
+  .page-desc {
+    @apply mb-6 text-skin-base text-center;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Mobile header navigation toggle
+    const hamburgerMenu = document.querySelector('.hamburger-menu');
+    const menuIcon = document.querySelector('.menu-icon');
+    const menuItems = document.getElementById('menu-items');
+    
+    if (hamburgerMenu && menuItems) {
+      hamburgerMenu.addEventListener('click', function() {
+        menuItems.classList.toggle('show');
+        if (menuIcon) {
+          menuIcon.classList.toggle('is-active');
+        }
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', function(event) {
+        if (menuItems.classList.contains('show') && 
+            !menuItems.contains(event.target as Element) && 
+            !hamburgerMenu.contains(event.target as Element)) {
+          menuItems.classList.remove('show');
+          if (menuIcon) {
+            menuIcon.classList.remove('is-active');
+          }
+        }
+      });
+      
+      // Close menu when clicking a menu item (for navigation links)
+      const menuLinks = menuItems.querySelectorAll('a');
+      menuLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          menuItems.classList.remove('show');
+          if (menuIcon) {
+            menuIcon.classList.remove('is-active');
+          }
+        });
+      });
+    }
+  });
+</script>
+

@@ -1,0 +1,51 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
+import BrainLayout from '@layouts/BrainLayout.astro';
+import WhiteboardLayout from '@components/Whiteboard';
+import { SITE } from '@config';
+
+// Organize data fetching
+const [albums, photos, snips, playlists, backgroundPhoto] = await Promise.all([
+  getCollection("albums"),
+  getCollection("photos"),
+  getCollection("snips"),
+  getCollection("playlists"),
+  getEntry("photos", "paintings/matisse-open-window")
+]);
+
+// Improved photo grouping function
+function groupPhotos(albums: CollectionEntry<"albums">[], photos: CollectionEntry<"photos">[]) {
+  return albums.reduce((acc, album) => ({
+    ...acc,
+    [album.slug]: photos
+      .filter(photo => album.slug === photo.data.albumId)
+      .map(photo => ({
+        optimizedPhoto: photo.data.photo
+      }))
+  }), {});
+}
+
+const groupedPhotos = groupPhotos(albums, photos);
+---
+
+<BrainLayout title={`Scraps | ${SITE.title}`}>
+  <WhiteboardLayout
+    albums={albums}
+    photosByAlbum={groupedPhotos}
+    snips={snips}
+    playlists={playlists}
+    backgroundImage={backgroundPhoto.data.photo}
+    client:load
+  />
+</BrainLayout>
+
+<style>
+  .overflow-auto {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .overflow-auto::-webkit-scrollbar {
+    display: none;
+  }
+</style>

@@ -1,0 +1,312 @@
+/* Layout & Container Styles */
+.retro-container {
+    @apply bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen;
+  }
+  
+  .photo-feed {
+    @apply max-w-2xl mx-auto py-8 px-4;
+  }
+  
+  .album-details-container {
+    @apply mx-auto w-full max-w-6xl px-4 pb-12;
+  }
+  
+  .photo-grid-container {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto px-4 py-8;
+  }
+  
+  .photo-detail-container {
+    @apply min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-cyan-300 p-8;
+  }
+  
+  .photo-detail-content {
+    @apply max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8;
+  }
+  
+  /* Profile Styles */
+  .profile-header {
+    @apply px-4 py-8 bg-gray-900 border-b border-cyan-500/30;
+    background: linear-gradient(to bottom, #000919, #001933);
+  }
+  
+  .profile-hero {
+    @apply max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-center md:items-start;
+  }
+  
+  .profile-pic-container {
+    @apply relative;
+  }
+  
+  .profile-pic {
+    @apply w-32 h-32 rounded-lg border-2 border-cyan-400 z-10 relative;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  }
+  
+  .profile-pic-glow {
+    @apply absolute inset-0 rounded-lg;
+    background: radial-gradient(circle at center, rgba(0, 255, 255, 0.2), transparent);
+    animation: pulse 4s infinite;
+  }
+  
+  .profile-info {
+    @apply flex-1;
+  }
+  
+  .profile-name {
+    @apply text-4xl font-bold text-cyan-300 mb-2;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  
+  .profile-title {
+    @apply text-xl text-cyan-400 mb-2;
+    font-family: "Monaco", monospace;
+  }
+  
+  .profile-location {
+    @apply text-cyan-500 mb-4 flex items-center gap-2;
+  }
+  
+  .profile-bio {
+    @apply text-cyan-400/80 max-w-2xl;
+  }
+  
+  .profile-stats {
+    @apply flex gap-8 mt-4 md:mt-0;
+  }
+  
+  .stat-item {
+    @apply flex flex-col items-center;
+  }
+  
+  .stat-value {
+    @apply text-2xl font-bold text-cyan-300;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+  
+  .stat-label {
+    @apply text-cyan-500 text-sm;
+  }
+  
+  /* Album & Feed Styles */
+  .feed-item {
+    @apply mb-16 bg-gray-900/50 rounded-lg overflow-visible;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  }
+  
+  .feed-item-header {
+    @apply p-6 border-b border-cyan-500/20;
+    background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
+  }
+  
+  .feed-item-info {
+    @apply space-y-2;
+  }
+  
+  .album-link {
+    @apply text-2xl font-bold text-cyan-300 hover:text-cyan-400 transition-colors;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+  
+  .album-meta {
+    @apply flex gap-4 text-sm text-cyan-500 font-mono;
+  }
+  
+  .album-description {
+    @apply text-cyan-400/80 mt-2 max-w-2xl;
+  }
+  
+  .album-footer {
+    @apply mt-4 px-6 py-3 border-t border-cyan-500/20;
+  }
+  
+  .album-tags {
+    @apply flex flex-wrap gap-2;
+  }
+  
+  .album-tag {
+    @apply text-cyan-400 text-sm hover:text-cyan-300 transition-colors cursor-pointer;
+  }
+  
+  .album-tag::before {
+    content: '#';
+    @apply text-cyan-500;
+  }
+  
+  /* Photo Styles */
+  .photo-deck-container {
+    @apply relative w-full;
+    height: 500px;
+    padding: 2rem;
+  }
+  
+  .photo-deck {
+    @apply relative w-full h-full;
+    perspective: 1000px;
+  }
+  
+  /* Modified card positioning - removed rotation for consistent upward movement */
+  .deck-photo {
+    @apply absolute transition-all duration-500 border-4 rounded-lg overflow-hidden;
+    width: 300px;
+    height: 400px;
+    left: 50%;
+    transform-origin: center bottom; /* Changed from center to center bottom for upward animation */
+    transform: 
+      translateX(calc(-50% + (var(--photo-index) * 60px - (var(--photo-count) * 30px))))
+      translateY(calc(var(--photo-index) * 5px));
+    /* Removed the rotation for simpler, straight-up animation */
+    animation: card-blow-up 4s ease-in-out infinite;
+  }
+  
+  .deck-photo:nth-child(2n) {
+    animation-delay: 0.5s;
+  }
+  .deck-photo:nth-child(3n) {
+    animation-delay: 1s;
+  }
+  
+  .deck-photo-link {
+    @apply block w-full h-full relative cursor-pointer;
+    transition: transform 0.3s ease-out;
+  }
+  
+  .deck-photo-details {
+    @apply absolute left-0 right-0 bottom-0 transform translate-y-full transition-transform duration-300 ease-out
+           bg-gradient-to-t from-gray-900 to-gray-900/80 p-4 space-y-2;
+    backdrop-filter: blur(8px);
+  }
+  
+  /* Simplified hover animation - only moves up with no rotation */
+  .deck-photo:hover {
+    transform: translateX(calc(-50% + (var(--photo-index) * 60px - (var(--photo-count) * 30px)))) translateY(calc(var(--photo-index) * 5px - 20px)) scale(1.05);
+    /* Removed rotation, simplified scaling */
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  }
+  
+  /* Mobile optimizations for animations */
+  @media (max-width: 768px) {
+    /* Simplified animations on mobile */
+    .deck-photo {
+      transition-duration: 0.3s; /* Faster transitions */
+      animation: card-blow-up 6s ease-in-out infinite; /* Slower animation for less CPU usage */
+    }
+    
+    @keyframes card-blow-up {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); } /* Reduced movement */
+    }
+    
+    /* Simplified hover on mobile */
+    .deck-photo:hover {
+      transform: translateX(calc(-50% + (var(--photo-index) * 60px - (var(--photo-count) * 30px)))) translateY(calc(var(--photo-index) * 5px - 10px)) scale(1.02);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); /* Lighter shadow */
+    }
+    
+    /* Disable glow effects on mobile for performance */
+    .deck-photo::after {
+      display: none;
+    }
+  }
+  
+  .photo-caption {
+    @apply text-cyan-300 text-sm leading-snug;
+  }
+  
+  .photo-tech-details {
+    @apply flex flex-col gap-1 text-xs font-mono;
+  }
+  
+  .camera {
+    @apply text-cyan-400;
+  }
+  
+  .settings {
+    @apply text-cyan-500;
+  }
+  
+  /* Animation & Effects */
+  @keyframes pulse {
+    0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.5); }
+    100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+  }
+  
+  @keyframes scan {
+    from { transform: translateY(0); }
+    to { transform: translateY(4px); }
+  }
+  
+  /* Modified to create upward "blowing" effect */
+  @keyframes card-blow-up {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .retro-container::before {
+    content: "";
+    @apply fixed inset-0 pointer-events-none;
+    background: linear-gradient(
+      transparent 50%,
+      rgba(0, 255, 255, 0.02) 50%
+    );
+    background-size: 100% 4px;
+    animation: scan 1s linear infinite;
+  }
+  
+  .deck-photo::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(45deg, 
+      rgba(0, 255, 255, 0.1) 0%,
+      transparent 100%
+    );
+  }
+  
+  .deck-photo:hover::after {
+    @apply opacity-100;
+  }
+  
+  .feed-item::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none opacity-20;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 255, 0.1) 2px,
+      rgba(0, 255, 255, 0.1) 4px
+    );
+  }
+
+  /* Custom Scrollbar Styles */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .draggable-area:active {
+    cursor: grabbing; /* Change the cursor to a grabbing cursor when the card is being dragged */
+  }
+
+  /* Add this to pause animations during zoom/transition */
+  .isTransitioning .sticky-note,
+  .isTransitioning .deck-photo {
+    animation-play-state: paused;
+  }

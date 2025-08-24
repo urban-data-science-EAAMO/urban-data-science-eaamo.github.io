@@ -1,0 +1,44 @@
+---
+export interface Props {
+  href: string;
+  className?: string;
+  ariaLabel?: string;
+  title?: string;
+  disabled?: boolean;
+}
+
+const {
+  href,
+  className = "",
+  ariaLabel,
+  title,
+  disabled = false,
+} = Astro.props;
+const isButtonStyle = className.includes('btn-');
+const baseClasses = [
+  "group inline-block",
+  !isButtonStyle && "hover:text-skin-accent",
+  className,
+].filter(Boolean);
+---
+
+{
+  disabled ? (
+    <span
+      class:list={baseClasses}
+      title={title}
+      aria-disabled={disabled}
+    >
+      <slot />
+    </span>
+  ) : (
+    <a
+      {href}
+      class:list={baseClasses}
+      aria-label={ariaLabel}
+      title={title}
+    >
+      <slot />
+    </a>
+  )
+}

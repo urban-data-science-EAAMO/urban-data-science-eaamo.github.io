@@ -1,0 +1,85 @@
+---
+import Layout from "@layouts/Layout.astro";
+import Header from "@components/Header.astro";
+import Footer from "@components/Footer.astro";
+import Tag from "@components/Tag.astro";
+import type { CollectionEntry } from "astro:content";
+import { slugifyStr } from "@utils/slugify";
+import ShareLinks from "@components/ShareLinks.astro";
+import { SITE } from "@config";
+
+export interface Props {
+  album: CollectionEntry<"albums">;
+  photos: CollectionEntry<"photos">[];
+}
+
+const { album, photos } = Astro.props;
+const { title, description, pubDatetime, tags, borderColor } = album.data;
+
+const layoutProps = {
+  title: `${title} | ${SITE.title}`,
+  description,
+  pubDatetime,
+  scrollSmooth: true,
+};
+---
+
+<Layout {...layoutProps}>
+  <Header />
+  <div class="retro-container">
+    <div class="mx-auto flex w-full max-w-6xl justify-start px-4">
+      <button
+        class="focus-outline mb-2 mt-8 flex hover:opacity-75 retro-text"
+        onclick="(() => (history.length === 1) ? window.location = '/' : history.back())()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg"
+          ><path
+            d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"
+          ></path>
+        </svg><span>Go back</span>
+      </button>
+    </div>
+    
+    <main class="album-details-container">
+      <div class="album-details-header">
+        <h1 class="album-details-title">{title}</h1>
+        <p class="album-details-description">{description}</p>
+      </div>
+      
+      <div class="photo-grid-container">
+        {photos.map((photo) => (
+          <a 
+            href={`/photos/${photo.slug}`}
+            class="photo-container group"
+            style={`border-color: ${borderColor}`}
+          >
+            <img
+              src={photo.data.photo.src}
+              alt={photo.data.caption}
+              class="photo"
+              loading="lazy"
+            />
+            <div class="photo-overlay">
+              <p class="photo-caption">{photo.data.caption}</p>
+              {photo.data.metadata && (
+                <div class="photo-metadata">
+                  <span>{photo.data.metadata.camera}</span>
+                  {photo.data.metadata.settings && (
+                    <span>{photo.data.metadata.settings.focalLength} • f/{photo.data.metadata.settings.aperture}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <ul class="my-8">
+        {tags.map(tag => <Tag tag={slugifyStr(tag)} />)}
+      </ul>
+
+      <ShareLinks />
+    </main>
+  </div>
+  <Footer />
+</Layout>

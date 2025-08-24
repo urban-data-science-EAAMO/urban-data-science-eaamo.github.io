@@ -1,0 +1,334 @@
+---
+import LinkButton from "./LinkButton.astro";
+import socialIcons from "@assets/socialIcons";
+
+const URL = Astro.url.href;
+const title = Astro.props.title || "Check out this post";
+const ogImageUrl = Astro.props.ogImageUrl || `${Astro.url.origin}/og.png`;
+
+const shareLinks = [
+  {
+    name: "WhatsApp",
+    href: "https://wa.me/?text=",
+    linkTitle: `Share this post via WhatsApp`,
+  },
+  {
+    name: "Facebook",
+    href: "https://www.facebook.com/sharer.php?u=",
+    linkTitle: `Share this post on Facebook`,
+  },
+  {
+    name: "Twitter",
+    href: "https://twitter.com/intent/tweet?url=",
+    linkTitle: `Tweet this post`,
+  },
+  {
+    name: "LinkedIn",
+    href: "https://www.linkedin.com/sharing/share-offsite/?url=",
+    linkTitle: `Share this post on LinkedIn`,
+  },
+  {
+    name: "Telegram",
+    href: "https://t.me/share/url?url=",
+    linkTitle: `Share this post via Telegram`,
+  },
+  {
+    name: "Pinterest",
+    href: "https://pinterest.com/pin/create/button/?url=",
+    linkTitle: `Share this post on Pinterest`,
+  },
+  {
+    name: "Reddit",
+    href: "https://reddit.com/submit?url=",
+    linkTitle: `Share this post on Reddit`,
+  },
+  {
+    name: "Mail",
+    href: "mailto:?subject=See%20this%20post&body=",
+    linkTitle: `Share this post via email`,
+  },
+] as const;
+
+// Instagram Story sharing (deep link)
+const instagramStoryShare = {
+  name: "Instagram",
+  href: `instagram-stories://share?source_application=web&url=${encodeURIComponent(URL)}`,
+  linkTitle: `Share this post to Instagram Story`,
+  fallbackHref: "https://instagram.com",
+};
+---
+
+<div class={`social-icons-share`}>
+  <span class="italic">Share this post on:</span>
+  <div class="text-center">
+    {
+      shareLinks.map(social => (
+        <LinkButton
+          href={`${social.href + URL}`}
+          className="link-button"
+          title={social.linkTitle}
+        >
+          <Fragment set:html={socialIcons[social.name]} />
+          <span class="sr-only">{social.linkTitle}</span>
+        </LinkButton>
+      ))
+    }
+    
+    <!-- Instagram Story sharing with Web Share API -->
+    <button
+      class="link-button instagram-story"
+      title="Share to Instagram Story"
+      data-title={title}
+      data-url={URL}
+      data-image-url={ogImageUrl}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+        <path d="M4 4m0 4a4 4 0 0 1 4 -4h8a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4z"></path>
+        <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
+        <path d="M16.5 7.5l0 .01"></path>
+      </svg>
+      <span class="sr-only">Share to Instagram Story</span>
+    </button>
+
+    <!-- Native Web Share API button (Safari share button) -->
+    <button
+      class="link-button native-share-button"
+      title="Share via system"
+      data-title={title}
+      data-url={URL}
+      style="display: none;"
+      id="native-share-button"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="6" r="3"></circle>
+        <circle cx="18" cy="18" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+      <span class="sr-only">Share via system</span>
+    </button>
+
+    <!-- Copy link button -->
+    <button
+      class="link-button copy-link-button"
+      title="Copy link to clipboard"
+      data-url={URL}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+        <path d="M8 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"></path>
+        <path d="M16 16m0 2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span class="sr-only">Copy link</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  // Instagram Story sharing - optimized for web browsers
+  async function shareToInstagramStory(title: string, url: string, imageUrl: string) {
+    try {
+      console.log('=== INSTAGRAM STORY SHARING DEBUG ===');
+      console.log('Attempting to share to Instagram Story:', { title, url, imageUrl });
+      console.log('User Agent:', navigator.userAgent);
+      console.log('Web Share API available:', 'share' in navigator);
+      console.log('Can Share available:', 'canShare' in navigator);
+      
+      // Check if we're on iOS Safari
+      const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      console.log('iOS Safari detected:', isIOSSafari);
+      
+      // First, try to fetch the OG image
+      let imageBlob = null;
+      try {
+        console.log('Fetching OG image from:', imageUrl);
+        const response = await fetch(imageUrl);
+        console.log('Image fetch response status:', response.status);
+        console.log('Image fetch response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        imageBlob = await response.blob();
+        console.log('Successfully fetched image blob:', imageBlob.size, 'bytes, type:', imageBlob.type);
+      } catch (imageError) {
+        console.log('Failed to fetch image, proceeding without image:', imageError);
+      }
+      
+      // On iOS Safari, try the Web Share API with files first
+      if (isIOSSafari && imageBlob && navigator.canShare) {
+        console.log('Testing file sharing on iOS Safari');
+        try {
+          const file = new File([imageBlob], `${title.replace(/[^a-z0-9]/gi, '_')}.png`, {
+            type: 'image/png',
+            lastModified: new Date().getTime(),
+          });
+          
+          console.log('Created file:', file.name, file.size, file.type);
+          
+          const shareData = {
+            title: title,
+            text: `Check out this post: ${title}`,
+            url: url,
+            files: [file],
+          };
+          
+          console.log('Share data prepared:', shareData);
+          console.log('Testing if device can share files:', navigator.canShare(shareData));
+          
+          if (navigator.canShare(shareData)) {
+            console.log('Device can share files, calling navigator.share');
+            await navigator.share(shareData);
+            console.log('Web Share API with files successful');
+            return;
+          } else {
+            console.log('Device cannot share files, trying without files');
+          }
+        } catch (fileShareError) {
+          console.log('File sharing failed:', fileShareError);
+        }
+      }
+      
+      // Fallback: Try regular Web Share API (without files)
+      if (navigator.share) {
+        console.log('Trying regular Web Share API');
+        try {
+          const shareData = {
+            title: title,
+            text: `Check out this post: ${title}`,
+            url: url,
+          };
+          
+          console.log('Regular share data:', shareData);
+          await navigator.share(shareData);
+          console.log('Regular Web Share API successful');
+          return;
+        } catch (shareError) {
+          console.error('Regular Web Share API failed:', shareError);
+        }
+      }
+      
+      // Final fallback: copy URL to clipboard
+      console.log('All sharing methods failed, copying to clipboard');
+      copyToClipboard(url);
+      
+    } catch (error) {
+      console.error('Error in shareToInstagramStory:', error);
+      // Final fallback: copy URL to clipboard
+      copyToClipboard(url);
+    }
+  }
+  
+  // Native Web Share API function (Safari share button)
+  function nativeShare(title: string, url: string) {
+    if ('share' in navigator) {
+      navigator.share({
+        title: title,
+        url: url,
+      }).catch((error) => {
+        console.log('Error sharing:', error);
+        // Fallback to copy link
+        copyToClipboard(url);
+      });
+    } else {
+      // Fallback: copy URL to clipboard
+      copyToClipboard(url);
+    }
+  }
+
+  // Copy to clipboard function
+  function copyToClipboard(text: string) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        showCopySuccess();
+      });
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      showCopySuccess();
+    }
+  }
+
+  // Show copy success feedback
+  function showCopySuccess() {
+    const button = document.querySelector('.copy-link-button') as HTMLButtonElement;
+    if (button) {
+      const originalHTML = button.innerHTML;
+      button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+          <path d="M5 12l5 5l10 -10"></path>
+        </svg>
+        <span class="sr-only">Copied!</span>
+      `;
+      button.style.background = '#10b981';
+      
+      setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.style.background = '';
+      }, 2000);
+    }
+  }
+
+  // Initialize event listeners when DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing ShareLinks event listeners');
+    
+    // Show native share button only if Web Share API is supported
+    const nativeShareButton = document.getElementById('native-share-button') as HTMLButtonElement;
+    if (nativeShareButton && 'share' in navigator) {
+      nativeShareButton.style.display = 'inline-flex';
+      console.log('Native share button shown');
+    }
+
+    // Instagram Story button event listener
+    const instagramButton = document.querySelector('.instagram-story') as HTMLButtonElement;
+    console.log('Instagram button found:', instagramButton);
+    if (instagramButton) {
+      instagramButton.addEventListener('click', function() {
+        console.log('Instagram button clicked!');
+        const title = this.getAttribute('data-title') || '';
+        const url = this.getAttribute('data-url') || '';
+        const imageUrl = this.getAttribute('data-image-url') || '';
+        console.log('Instagram button data:', { title, url, imageUrl });
+        shareToInstagramStory(title, url, imageUrl);
+      });
+      console.log('Instagram button event listener attached');
+    } else {
+      console.log('Instagram button not found!');
+    }
+
+    // Native share button event listener
+    if (nativeShareButton) {
+      nativeShareButton.addEventListener('click', function() {
+        console.log('Native share button clicked!');
+        const title = this.getAttribute('data-title') || '';
+        const url = this.getAttribute('data-url') || '';
+        nativeShare(title, url);
+      });
+      console.log('Native share button event listener attached');
+    }
+
+    // Copy link button event listener
+    const copyButton = document.querySelector('.copy-link-button') as HTMLButtonElement;
+    console.log('Copy button found:', copyButton);
+    if (copyButton) {
+      copyButton.addEventListener('click', function() {
+        console.log('Copy button clicked!');
+        const url = this.getAttribute('data-url') || '';
+        copyToClipboard(url);
+      });
+      console.log('Copy button event listener attached');
+    } else {
+      console.log('Copy button not found!');
+    }
+  });
+</script>
