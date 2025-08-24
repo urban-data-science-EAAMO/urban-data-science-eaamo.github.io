@@ -1,0 +1,57 @@
+name: Disable Branch Protection
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to unprotect (defaults to repo default branch)"
+        required: false
+
+jobs:
+  unprotect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate admin token present
+        run: |
+          if [ -z "${{ secrets.ADMIN_TOKEN }}" ]; then
+            echo "ADMIN_TOKEN is not set. Add a repo/org secret named ADMIN_TOKEN with 'repo' scope." >&2
+            exit 1
+          fi
+
+      - name: Disable protection
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADMIN_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const inputFromCore = (core.getInput('branch') || '').trim();
+            const inputFromEvent = (context.payload?.inputs?.branch || '').trim();
+            const defaultBranch = context.payload?.repository?.default_branch;
+            const branch = inputFromCore || inputFromEvent || defaultBranch || 'main';
+
+            // Validate branch exists
+            try {
+              await github.rest.repos.getBranch({ owner, repo, branch });
+            } catch (e) {
+              core.setFailed(`Branch '${branch}' not found. Provide a valid branch via workflow input.`);
+              return;
+            }
+
+            try {
+              await github.rest.repos.deleteBranchProtection({ owner, repo, branch });
+              core.info(`Removed protection on ${owner}/${repo}@${branch}.`);
+            } catch (e) {
+              // If protection is already absent, the endpoint may 404; treat as success
+              if (e.status === 404) {
+                core.warning(`No protection found on ${branch}; nothing to remove.`);
+              } else {
+                throw e;
+              }
+            }
+
+      - name: Summary
+        run: |
+          echo "Branch protection disabled for '${{ github.event.inputs.branch || github.ref_name || 'default' }}'" >> $GITHUB_STEP_SUMMARY
+
+
