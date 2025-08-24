@@ -152,7 +152,7 @@ jobs:
           name: "${{ steps.parse.outputs.name }}"
           role: "${{ steps.parse.outputs.role }}"
           affiliation: "${{ steps.parse.outputs.affiliation }}"
-          image: "${{ steps.dl.outputs.path }}"
+          image: "${{ steps.dl.outputs.path || steps.parse.outputs.image }}"
           website: "${{ steps.parse.outputs.website }}"
           order: ${{ steps.parse.outputs.order }}
           tags: ["member"]
@@ -174,27 +174,41 @@ jobs:
 
       - name: Open PR
         if: steps.parse.outputs.found == 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: add-member/${{ steps.parse.outputs.slug }}
-          title: "[Member] Add: ${{ steps.parse.outputs.name }}"
-          body: |
-            Auto-generated from issue #${{ github.event.issue.number }}.
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const base = context.payload?.repository?.default_branch || 'main';
+            const head = `add-member/${{ steps.parse.outputs.slug }}`;
+            const body = `Auto-generated from issue #${{ github.event.issue.number }}.\n\n<!-- MEMBER-INFO-START -->\n\n\`\`\`yaml\nname: "${{ steps.parse.outputs.name }}"\nrole: "${{ steps.parse.outputs.role }}"\naffiliation: "${{ steps.parse.outputs.affiliation }}"\nimage: "${{ steps.dl.outputs.path || steps.parse.outputs.image }}"\nwebsite: "${{ steps.parse.outputs.website }}"\norder: ${{ steps.parse.outputs.order }}\n\`\`\`\n\n<!-- MEMBER-INFO-END -->\n\nCloses #${{ github.event.issue.number }}`;
 
-            <!-- MEMBER-INFO-START -->
-            ```yaml
-            name: "${{ steps.parse.outputs.name }}"
-            role: "${{ steps.parse.outputs.role }}"
-            affiliation: "${{ steps.parse.outputs.affiliation }}"
-            image: "${{ steps.dl.outputs.path }}"
-            website: "${{ steps.parse.outputs.website }}"
-            order: ${{ steps.parse.outputs.order }}
-            ```
-            <!-- MEMBER-INFO-END -->
-            
-            Closes #${{ github.event.issue.number }}
-          labels: members, content
-          delete-branch: false
+            async function ensureLabels(labels) {
+              for (const name of labels.split(',').map(s => s.trim()).filter(Boolean)) {
+                try { await github.rest.issues.getLabel({ owner, repo, name }); }
+                catch (e) { if (e.status === 404) await github.rest.issues.createLabel({ owner, repo, name, color: 'ededed' }); else throw e; }
+              }
+            }
+            await ensureLabels('members, content');
+
+            try {
+              const pr = await github.rest.pulls.create({ owner, repo, base, head, title: `[Member] Add: ${{ steps.parse.outputs.name }}`, body });
+              const number = pr.data.number;
+              await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: ['members','content'] });
+            } catch (e) {
+              if (e.status === 422) {
+                // PR likely already exists; update its body/title/labels
+                const prs = await github.rest.pulls.list({ owner, repo, state: 'open', head: `${owner}:${head}` });
+                const existing = prs.data[0];
+                if (existing) {
+                  await github.rest.pulls.update({ owner, repo, pull_number: existing.number, title: `[Member] Add: ${{ steps.parse.outputs.name }}`, body });
+                  await github.rest.issues.addLabels({ owner, repo, issue_number: existing.number, labels: ['members','content'] });
+                } else {
+                  throw e;
+                }
+              } else {
+                throw e;
+              }
+            }
 
 
