@@ -1005,6 +1005,11 @@ html[data-theme="dark"] .btn-secondary {
   overflow: hidden;
 }
 
+/* Home: add spacing above the All Talks button */
+.all-posts-btn-wrapper {
+  margin-top: 0.5rem; /* ~8px */
+}
+
 .talks-controls {
   max-width: 960px;
   margin: 0 auto 1rem auto;
@@ -1367,6 +1372,22 @@ html[data-theme="dark"] .btn-secondary {
   gap: 0.5rem;
 }
 
+/* Make clickable member cards behave like links without default decorations */
+a.member-card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Subtle lift and scale animation on hover */
+.member-card {
+  transition: transform 0.2s ease;
+}
+
+.member-card:hover {
+  transform: translateY(-2px);
+}
+
 .member-photo {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -1380,6 +1401,15 @@ html[data-theme="dark"] .btn-secondary {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Smooth image scaling on hover */
+.member-photo img {
+  transition: transform 0.2s ease;
+}
+
+.member-card:hover .member-photo img {
+  transform: scale(1.03);
 }
 
 .member-photo-placeholder {

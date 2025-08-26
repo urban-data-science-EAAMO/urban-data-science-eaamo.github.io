@@ -120,33 +120,63 @@ const socialCount = SOCIALS.filter(social => social.active).length;
               <div class="projects-grid-container" id="members-grid-container">
                 <div class="projects-grid members-grid">
                   {sortedMembers.map(member => (
-                    <div class="member-card">
-                      <div class="member-photo">
-                        {member.data.image ? (
-                          typeof member.data.image === 'string' ? (
-                            <img 
-                              src={member.data.image} 
-                              alt={member.data.name} 
-                              loading="lazy" 
-                            />
+                    member.data.website ? (
+                      <a class="member-card" href={member.data.website} target="_blank" rel="noopener noreferrer">
+                        <div class="member-photo">
+                          {member.data.image ? (
+                            typeof member.data.image === 'string' ? (
+                              <img 
+                                src={member.data.image} 
+                                alt={member.data.name} 
+                                loading="lazy" 
+                              />
+                            ) : (
+                              <img 
+                                src={member.data.image.src} 
+                                alt={member.data.name} 
+                                width={member.data.image.width}
+                                height={member.data.image.height}
+                                loading="lazy" 
+                              />
+                            )
                           ) : (
-                            <img 
-                              src={member.data.image.src} 
-                              alt={member.data.name} 
-                              width={member.data.image.width}
-                              height={member.data.image.height}
-                              loading="lazy" 
-                            />
-                          )
-                        ) : (
-                          <div class="member-photo-placeholder"></div>
-                        )}
+                            <div class="member-photo-placeholder"></div>
+                          )}
+                        </div>
+                        <div class="member-info">
+                          <div class="member-name">{member.data.name}</div>
+                          {member.data.affiliation && <div class="member-affiliation">{member.data.affiliation}</div>}
+                        </div>
+                      </a>
+                    ) : (
+                      <div class="member-card">
+                        <div class="member-photo">
+                          {member.data.image ? (
+                            typeof member.data.image === 'string' ? (
+                              <img 
+                                src={member.data.image} 
+                                alt={member.data.name} 
+                                loading="lazy" 
+                              />
+                            ) : (
+                              <img 
+                                src={member.data.image.src} 
+                                alt={member.data.name} 
+                                width={member.data.image.width}
+                                height={member.data.image.height}
+                                loading="lazy" 
+                              />
+                            )
+                          ) : (
+                            <div class="member-photo-placeholder"></div>
+                          )}
+                        </div>
+                        <div class="member-info">
+                          <div class="member-name">{member.data.name}</div>
+                          {member.data.affiliation && <div class="member-affiliation">{member.data.affiliation}</div>}
+                        </div>
                       </div>
-                      <div class="member-info">
-                        <div class="member-name">{member.data.name}</div>
-                        {member.data.affiliation && <div class="member-affiliation">{member.data.affiliation}</div>}
-                      </div>
-                    </div>
+                    )
                   ))}
                 </div>
               </div>
