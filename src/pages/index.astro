@@ -1,5 +1,6 @@
 ---
 import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
 import Layout from "@layouts/Layout.astro";
 import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
@@ -8,13 +9,14 @@ import Hr from "@components/Hr.astro";
 import ProjectCard from "@components/ProjectCard";
 import Socials from "@components/Socials.astro";
 import { SITE, SOCIALS } from "@config";
+import { resolveDoi } from "@utils/doi";
 
 const projects = await getCollection("projects");
 const speakers = await getCollection("speakers");
-const sortedSpeakers = speakers.sort((a, b) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
+const sortedSpeakers = speakers.sort((a: CollectionEntry<'speakers'>, b: CollectionEntry<'speakers'>) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
 
 // Sort projects by order field
-const sortedProjects = projects.sort((a, b) => 
+const sortedProjects = projects.sort((a: CollectionEntry<'projects'>, b: CollectionEntry<'projects'>) => 
   (a.data.order || Infinity) - (b.data.order || Infinity)
 );
 
@@ -22,7 +24,25 @@ const sortedProjects = projects.sort((a, b) =>
 
 // Members collection
 const members = await getCollection("members");
-const sortedMembers = members.sort((a, b) => (a.data.order || 9999) - (b.data.order || 9999));
+const sortedMembers = members.sort((a: CollectionEntry<'members'>, b: CollectionEntry<'members'>) => (a.data.order || 9999) - (b.data.order || 9999));
+
+// Reading list (resolve DOIs; top 5)
+type HomeReadingItem = { title: string; url: string; year?: number; venue?: string };
+const pubs: CollectionEntry<"publications">[] = await getCollection("publications");
+const pubsResolved = await Promise.all(
+  pubs.map(async (e: CollectionEntry<"publications">) => {
+    const meta = await resolveDoi(e.data.doi);
+    return {
+      title: e.data.title ?? meta?.title ?? e.data.doi,
+      url: e.data.url ?? meta?.url ?? `https://doi.org/${e.data.doi}`,
+      year: e.data.year ?? meta?.year,
+      venue: e.data.venue ?? meta?.venue,
+    } as HomeReadingItem;
+  })
+);
+const readingItems: HomeReadingItem[] = pubsResolved
+  .sort((a: HomeReadingItem, b: HomeReadingItem) => (b.year ?? 0) - (a.year ?? 0))
+  .slice(0, 5);
 
 const socialCount = SOCIALS.filter(social => social.active).length;
 ---
@@ -49,7 +69,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
         </p>
         <div class="home-cta">
           <LinkButton className="btn-primary" href="/join/">Join Our Mailing List!</LinkButton>
-          <LinkButton className="btn-secondary" href="https://bridges.eaamo.org/">EAAMO Bridges Page</LinkButton>
+          <a class="btn-secondary inline-flex items-center gap-2 px-4 py-2 rounded-md border transition-all duration-200" href="https://bridges.eaamo.org/" target="_blank" rel="noopener noreferrer">EAAMO Bridges Page</a>
         </div>
         <p>
           <b>September 1st 2025: </b> To help us with planning, fill out the interest form below with your availability
@@ -61,22 +81,22 @@ const socialCount = SOCIALS.filter(social => social.active).length;
       <section id="speakers">
         <h3 class="subsection-heading">Recent Speakers & Activites</h3>
         <div class="talks-list home-talks">
-          {sortedSpeakers.slice(0, 4).map(({ data }) => (
+          {sortedSpeakers.slice(0, 4).map((entry: CollectionEntry<'speakers'>) => (
             <article class="talk-card">
               <div class="talk-date">
-                {data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                {entry.data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
-              <h3 class="talk-title">{data.talkTitle}</h3>
+              <h3 class="talk-title">{entry.data.talkTitle}</h3>
               <div class="talk-meta">
-                <span class="talk-speaker">{data.name}</span>
-                {data.affiliation && <span class="talk-divider">·</span>}
-                {data.affiliation && <span class="talk-affiliation">{data.affiliation}</span>}
+                <span class="talk-speaker">{entry.data.name}</span>
+                {entry.data.affiliation && <span class="talk-divider">·</span>}
+                {entry.data.affiliation && <span class="talk-affiliation">{entry.data.affiliation}</span>}
               </div>
-              {data.abstract && <p class="talk-abstract">{data.abstract}</p>}
+              {entry.data.abstract && <p class="talk-abstract">{entry.data.abstract}</p>}
               <div class="talk-links">
-                {data.website && (<a class="talk-link" href={data.website} target="_blank" rel="noopener">Website</a>)}
-                {data.slidesUrl && (<a class="talk-link" href={data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
-                {data.recordingUrl && (<a class="talk-link" href={data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
+                {entry.data.website && (<a class="talk-link" href={entry.data.website} target="_blank" rel="noopener">Website</a>)}
+                {entry.data.slidesUrl && (<a class="talk-link" href={entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
+                {entry.data.recordingUrl && (<a class="talk-link" href={entry.data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
               </div>
             </article>
           ))}
@@ -104,7 +124,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
             <div class="projects-section-wrapper">
               <div class="projects-grid-container" id="projects-grid-container">
                 <div class="projects-grid">
-                  {sortedProjects.map(project => (
+                  {sortedProjects.map((project: CollectionEntry<'projects'>) => (
                     <ProjectCard project={project} client:load />
                   ))}
                 </div>
@@ -125,7 +145,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
             <div class="projects-section-wrapper">
               <div class="projects-grid-container" id="members-grid-container">
                 <div class="projects-grid members-grid">
-                  {sortedMembers.map(member => (
+                  {sortedMembers.map((member: CollectionEntry<'members'>) => (
                     member.data.website ? (
                       <a class="member-card" href={member.data.website} target="_blank" rel="noopener noreferrer">
                         <div class="member-photo">
@@ -186,6 +206,34 @@ const socialCount = SOCIALS.filter(social => social.active).length;
                   ))}
                 </div>
               </div>
+            </div>
+          </>
+        )}
+
+        {readingItems.length > 0 && (
+          <>
+            <h3 class="subsection-heading mt-6">Reading List</h3>
+            <ul class="reading-list">
+              {readingItems.map((p: HomeReadingItem) => (
+                <li class="reading-item">
+                  <div class="reading-title">
+                    {p.title}
+                    {p.year && <span class="reading-venue"> · {p.year}</span>}
+                  </div>
+                  {p.venue && <div class="reading-desc">{p.venue}</div>}
+                  <div class="reading-links">
+                    <a class="underline" href={p.url} target="_blank" rel="noopener">Link</a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div class="all-posts-btn-wrapper">
+              <LinkButton href="/publications">
+                All Reading
+                <svg xmlns="http://www.w3.org/2000/svg">
+                  <path d="m11.293 17.293 1.414 1.414L19.414 12l-6.707-6.707-1.414 1.414L15.586 11H6v2h9.586z"></path>
+                </svg>
+              </LinkButton>
             </div>
           </>
         )}
