@@ -6,7 +6,7 @@ const signupHtml = `
         <table border=0 cellspacing=0 cellpadding=3>
             <tr>
                 <td align="right">
-                    <font size=1>Email address: </font>
+                    <font size=2>Email address: </font>
                 </td>
                 <td>
                     <input type="text" name="email" value="" SIZE=10>
@@ -17,7 +17,7 @@ const signupHtml = `
             </tr>
         <tr>
             <td align="right">
-                <font size=1><I>(required)</I> Your name: </font>
+                <font size=2>Your name: </font>
             </td>
             <td>
                 <INPUT TYPE="text" NAME="name" VALUE="" SIZE=10 MAXLENGTH=100>
@@ -48,7 +48,7 @@ const signupHtml = `
       {successParam === '1' ? (
         <div class="join-success" role="status" aria-live="polite">
           <h2 class="join-success-title">Thanks for subscribing!</h2>
-          <p class="join-success-body">Please check your email for a confirmation message from Cornell Lists to complete your subscription.</p>
+          <p class="join-success-body">Complete your subscription through the link on your email.</p>
           <div class="join-links">
             <a class="underline" href="/" rel="noopener">Return home</a>
           </div>
@@ -60,7 +60,7 @@ const signupHtml = `
       )}
 
       <div class="join-links">
-        <p class="join-subtitle">Please check your email for a confirmation message from Cornell Lists to complete your subscription.</p>
+        <p class="join-subtitle">Complete your subscription through the link on your email.</p>
         <a class="underline" href="/">Back</a>
         <span aria-hidden>·</span>
         <a class="underline" href="https://bridges.eaamo.org/" target="_blank" rel="noopener">EAAMO Bridges</a>
