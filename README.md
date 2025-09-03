@@ -4,6 +4,8 @@
 
 This site supports two easy contribution paths using GitHub Issues. When you open an issue with the appropriate template, a GitHub Action will turn it into a content file and open a pull request for review.
 
+**add member / paper issue->pr->content workflow is not currently working. please use the manual route specifed below.**
+
 ### Add a Member Card
 
 1. Open a new issue and choose “Member: Add person”.
@@ -90,4 +92,5 @@ pnpm dev
 
 ### Notes
 - Image optimization: member photos can be external URLs or committed to `src/assets/members/`.
+
 - Security: workflows are gated to run only on this repository and include duplicate checks.
