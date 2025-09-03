@@ -7,7 +7,7 @@ export const PROFILE = {
   bio: "A working group on urban data science and equity, hosting talks, studies, and workshops on computational analysis of urban data to explore and address inequities.",
   location: "Global / Hybrid",
   links: {
-    github: "https://github.com/eaamo-bridges",
+    github: "https://github.com/urban-data-science-EAAMO/",
   },
   stats: {
     photos: 0,
