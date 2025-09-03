@@ -1,0 +1,252 @@
+name: Issue to Content
+
+on:
+  issues:
+    types: [opened, edited, reopened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  reading_list:
+    if: github.event.repository.full_name == github.repository && contains(github.event.issue.labels.*.name, 'reading-list')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract issue fields
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            function getField(id) {
+              const re = new RegExp(`(?<=\n### ${id}\n)\\s*([^\n]+)`, 'i');
+              const m = body.match(re); return m ? m[1].trim() : '';
+            }
+            const doi = getField('DOI');
+            if (!doi) core.setFailed('DOI is required');
+            const title = getField('Title (optional)');
+            const authors = getField('Authors (optional)');
+            const venue = getField('Venue (optional)');
+            const year = getField('Year (optional)');
+            const url = getField('URL (optional)');
+            core.setOutput('doi', doi);
+            core.setOutput('title', title);
+            core.setOutput('authors', authors);
+            core.setOutput('venue', venue);
+            core.setOutput('year', year);
+            core.setOutput('url', url);
+
+      - name: Resolve DOI via Crossref
+        id: crossref
+        uses: actions/github-script@v7
+        env:
+          DOI: ${{ steps.parse.outputs.doi }}
+        with:
+          script: |
+            const doi = process.env.DOI;
+            try {
+              const res = await fetch(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, { headers: { 'Accept': 'application/json' } });
+              if (!res.ok) {
+                core.setOutput('ok', 'false');
+                core.setOutput('status', String(res.status));
+              } else {
+                const data = await res.json();
+                const item = data && data.message ? data.message : null;
+                if (!item) {
+                  core.setOutput('ok', 'false');
+                  core.setOutput('status', 'no-message');
+                } else {
+                  const title = Array.isArray(item.title) ? (item.title[0] || doi) : (item.title || doi);
+                  const authorsArr = Array.isArray(item.author) ? item.author : [];
+                  const authors = authorsArr.map(a => [a?.given, a?.family].filter(Boolean).join(' ').trim()).filter(Boolean);
+                  const authors_yaml = `[${authors.map(a => JSON.stringify(a)).join(', ')}]`;
+                  const venue = (item['container-title'] && item['container-title'][0]) || item.publisher || '';
+                  const year = (item.issued && item.issued['date-parts'] && item.issued['date-parts'][0] && item.issued['date-parts'][0][0]) || '';
+                  const url = item.URL || (doi.startsWith('http') ? doi : `https://doi.org/${doi}`);
+                  core.setOutput('ok', 'true');
+                  core.setOutput('title', title);
+                  core.setOutput('authors_yaml', authors_yaml);
+                  core.setOutput('venue', venue);
+                  core.setOutput('year', String(year));
+                  core.setOutput('url', url);
+                }
+              }
+            } catch (e) {
+              core.setOutput('ok', 'false');
+              core.setOutput('status', 'exception');
+            }
+
+      - name: Comment if DOI invalid
+        if: steps.crossref.outputs.ok != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ DOI could not be resolved (status: ${'${{ steps.crossref.outputs.status }}'}). Please check the DOI and resubmit.`
+            });
+
+      - name: Fail if DOI invalid
+        if: steps.crossref.outputs.ok != 'true'
+        run: exit 1
+
+      - name: Check duplicate publication
+        id: dup
+        run: |
+          slug=$(echo "${{ steps.parse.outputs.doi }}" | sed 's#[/:]#-#g' | tr -cd '[:alnum:]-._')
+          file_path="src/content/publications/${slug}.md"
+          if [ -f "$file_path" ]; then echo "exists=true" >> $GITHUB_OUTPUT; else echo "exists=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Comment duplicate and stop
+        if: steps.dup.outputs.exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `ℹ️ This DOI already exists in the reading list. Skipping creation.`
+            });
+            core.info('Duplicate detected; stopping job.');
+
+      - name: Create content file
+        if: steps.dup.outputs.exists != 'true'
+        run: |
+          slug=$(echo "${{ steps.parse.outputs.doi }}" | sed 's#[/:]#-#g' | tr -cd '[:alnum:]-._')
+          file_path="src/content/publications/${slug}.md"
+          mkdir -p "$(dirname "$file_path")"
+          echo "---" > "$file_path"
+          echo "doi: ${{ steps.parse.outputs.doi }}" >> "$file_path"
+          # Title from issue or Crossref
+          if [ -n "${{ steps.parse.outputs.title }}" ]; then \
+            echo "title: ${{ steps.parse.outputs.title }}" >> "$file_path"; \
+          elif [ -n "${{ steps.crossref.outputs.title }}" ]; then \
+            echo "title: ${{ steps.crossref.outputs.title }}" >> "$file_path"; \
+          fi
+          # Authors from issue or Crossref
+          if [ -n "${{ steps.parse.outputs.authors }}" ]; then \
+            authors_list=$(echo "${{ steps.parse.outputs.authors }}" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^ +| +$/, "", $i); printf "%s\"%s\"", (i>1?", ":""), $i}}'); \
+            echo "authors: [${authors_list}]" >> "$file_path"; \
+          elif [ -n "${{ steps.crossref.outputs.authors_yaml }}" ]; then \
+            echo "authors: ${{ steps.crossref.outputs.authors_yaml }}" >> "$file_path"; \
+          fi
+          # Venue from issue or Crossref
+          if [ -n "${{ steps.parse.outputs.venue }}" ]; then \
+            echo "venue: ${{ steps.parse.outputs.venue }}" >> "$file_path"; \
+          elif [ -n "${{ steps.crossref.outputs.venue }}" ]; then \
+            echo "venue: ${{ steps.crossref.outputs.venue }}" >> "$file_path"; \
+          fi
+          # Year from issue or Crossref
+          if [ -n "${{ steps.parse.outputs.year }}" ]; then \
+            echo "year: ${{ steps.parse.outputs.year }}" >> "$file_path"; \
+          elif [ -n "${{ steps.crossref.outputs.year }}" ]; then \
+            echo "year: ${{ steps.crossref.outputs.year }}" >> "$file_path"; \
+          fi
+          # URL from issue or Crossref
+          if [ -n "${{ steps.parse.outputs.url }}" ]; then \
+            echo "url: ${{ steps.parse.outputs.url }}" >> "$file_path"; \
+          elif [ -n "${{ steps.crossref.outputs.url }}" ]; then \
+            echo "url: ${{ steps.crossref.outputs.url }}" >> "$file_path"; \
+          fi
+          echo "tags: [publication]" >> "$file_path"
+          echo "---" >> "$file_path"
+
+      - name: Create Pull Request
+        if: steps.dup.outputs.exists != 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: |
+            chore(content): add reading list entry from issue #${{ github.event.issue.number }}
+
+            Generated by automation.
+          title: "Add reading list entry: #${{ github.event.issue.number }}"
+          body: |
+            This PR adds a reading list entry.
+
+            Closes #${{ github.event.issue.number }}
+
+            - DOI: ${{ steps.parse.outputs.doi }}
+          branch: ci/add-reading-${{ github.event.issue.number }}
+          labels: content, automated pr
+          sign-commits: true
+
+  member:
+    if: contains(github.event.issue.labels.*.name, 'member')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract issue fields
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            function getField(id) {
+              const re = new RegExp(`(?<=\n### ${id}\n)\\s*([^\n]+)`, 'i');
+              const m = body.match(re); return m ? m[1].trim() : '';
+            }
+            const name = getField('Full name');
+            if (!name) core.setFailed('Full name is required');
+            const role = getField('Role (optional)');
+            const affiliation = getField('Affiliation (optional)');
+            const image = getField('Image URL (optional)');
+            const website = getField('Website (optional)');
+            const order = getField('Order (optional)');
+            const tags = getField('Tags (optional)');
+            core.setOutput('name', name);
+            core.setOutput('role', role);
+            core.setOutput('affiliation', affiliation);
+            core.setOutput('image', image);
+            core.setOutput('website', website);
+            core.setOutput('order', order);
+            core.setOutput('tags', tags);
+
+      - name: Create content file
+        run: |
+          slug=$(echo "${{ steps.parse.outputs.name }}" | awk '{print tolower($0)}' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+          file_path="src/content/members/${slug}.md"
+          mkdir -p "$(dirname "$file_path")"
+          echo "---" > "$file_path"
+          echo "name: ${{ steps.parse.outputs.name }}" >> "$file_path"
+          if [ -n "${{ steps.parse.outputs.role }}" ]; then echo "role: ${{ steps.parse.outputs.role }}" >> "$file_path"; fi
+          if [ -n "${{ steps.parse.outputs.affiliation }}" ]; then echo "affiliation: ${{ steps.parse.outputs.affiliation }}" >> "$file_path"; fi
+          if [ -n "${{ steps.parse.outputs.image }}" ]; then echo "image: ${{ steps.parse.outputs.image }}" >> "$file_path"; fi
+          if [ -n "${{ steps.parse.outputs.website }}" ]; then echo "website: ${{ steps.parse.outputs.website }}" >> "$file_path"; fi
+          if [ -n "${{ steps.parse.outputs.order }}" ]; then echo "order: ${{ steps.parse.outputs.order }}" >> "$file_path"; fi
+          if [ -n "${{ steps.parse.outputs.tags }}" ]; then \
+            tags_list=$(echo "${{ steps.parse.outputs.tags }}" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^ +| +$/, "", $i); printf "%s\"%s\"", (i>1?", ":""), $i}}'); \
+            echo "tags: [${tags_list}]" >> "$file_path"; \
+          else \
+            echo 'tags: ["member"]' >> "$file_path"; \
+          fi
+          echo "---" >> "$file_path"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: |
+            chore(content): add member entry from issue #${{ github.event.issue.number }}
+
+            Generated by automation.
+          title: "Add member: #${{ github.event.issue.number }}"
+          body: |
+            This PR adds a member entry.
+
+            Closes #${{ github.event.issue.number }}
+
+            - Name: ${{ steps.parse.outputs.name }}
+          branch: ci/add-member-${{ github.event.issue.number }}
+          labels: content, automated pr
+          sign-commits: true
+
+

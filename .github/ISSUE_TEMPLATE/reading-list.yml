@@ -1,0 +1,42 @@
+name: "Reading List: Add paper"
+description: "Propose a paper (by DOI) for the Reading List"
+labels: ["reading-list"]
+title: "Add reading: <short-title-or-doi>"
+body:
+  - type: input
+    id: doi
+    attributes:
+      label: DOI
+      description: "Provide the DOI (e.g., 10.1145/3640792.3675740)"
+      placeholder: "10.1145/xxxx/yyyy"
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: Title (optional)
+  - type: textarea
+    id: authors
+    attributes:
+      label: Authors (optional)
+      description: "Comma-separated list (e.g., Jane Doe, John Smith)"
+  - type: input
+    id: venue
+    attributes:
+      label: Venue (optional)
+  - type: input
+    id: year
+    attributes:
+      label: Year (optional)
+      placeholder: "2025"
+  - type: input
+    id: url
+    attributes:
+      label: URL (optional)
+      placeholder: "https://example.com/paper"
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      description: "Any extra context for reviewers"
+

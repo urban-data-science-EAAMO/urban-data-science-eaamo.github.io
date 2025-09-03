@@ -1,0 +1,39 @@
+name: "Member: Add person"
+description: "Propose a new member card"
+labels: ["member"]
+title: "Add member: <full-name>"
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Full name
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: Role (optional)
+  - type: input
+    id: affiliation
+    attributes:
+      label: Affiliation (optional)
+  - type: input
+    id: image
+    attributes:
+      label: Image URL (optional)
+      description: "If omitted, you can add a local image later"
+  - type: input
+    id: website
+    attributes:
+      label: Website (optional)
+  - type: input
+    id: order
+    attributes:
+      label: Order (optional)
+      placeholder: "0"
+  - type: textarea
+    id: tags
+    attributes:
+      label: Tags (optional)
+      description: "Comma-separated list (e.g., member, leadership)"
+
