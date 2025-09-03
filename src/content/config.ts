@@ -104,6 +104,7 @@ const projects = defineCollection({
       site: z.string().url().optional(), // Website link
       code: z.string().url().optional(), // Code repository link
       bib: z.string().optional(), // BibTeX citation text
+      category: z.enum(["paper", "not-paper"]).default("not-paper"),
       image: image().optional(),
       youtubeId: z.string().optional(),
       pubDatetime: z.date(),
@@ -146,4 +147,19 @@ const members = defineCollection({
     }),
 });
 
-export const collections = { blog, albums, photos, snips, playlists, projects, speakers, members };
+const publications = defineCollection({
+  schema: z.object({
+    doi: z.string(),
+    // Optional overrides or additions beyond DOI metadata
+    title: z.string().optional(),
+    authors: z.array(z.string()).optional(),
+    venue: z.string().optional(),
+    year: z.number().optional(),
+    url: z.string().url().optional(),
+    tags: z.array(z.string()).default(["publication"]),
+    featured: z.boolean().optional(),
+    order: z.number().optional(),
+  }),
+});
+
+export const collections = { blog, albums, photos, snips, playlists, projects, speakers, members, publications };

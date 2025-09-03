@@ -1315,6 +1315,42 @@ html[data-theme="dark"] .btn-secondary {
   }
 }
 
+/* ===== Reading List ===== */
+.reading-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reading-item {
+  border: 1px solid rgba(var(--color-border), 1);
+  background: rgba(var(--color-card), 0.25);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.reading-title {
+  font-weight: 700;
+}
+
+.reading-venue {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.reading-links {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.reading-desc {
+  margin-top: 0.5rem;
+}
+
 /* Medium to Large Screens */
 @media (min-width: 1024px) {
   .left-col {

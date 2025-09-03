@@ -1,0 +1,61 @@
+---
+import Layout from "@layouts/Layout.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+import { resolveDoi } from "@utils/doi";
+
+const entries: CollectionEntry<"publications">[] = await getCollection("publications");
+
+const resolved = await Promise.all(
+  entries.map(async (e) => {
+    const meta = await resolveDoi(e.data.doi);
+    return { e, meta };
+  })
+);
+
+const items = resolved
+  .map(({ e, meta }) => ({
+    title: e.data.title ?? meta?.title ?? e.data.doi,
+    authors: e.data.authors ?? meta?.authors ?? [],
+    venue: e.data.venue ?? meta?.venue,
+    year: e.data.year ?? meta?.year,
+    url: e.data.url ?? meta?.url,
+    doi: e.data.doi,
+    featured: e.data.featured ?? false,
+    order: e.data.order ?? 0,
+  }))
+  .sort((a, b) => (a.year && b.year ? b.year - a.year : 0) || b.order - a.order);
+---
+
+<Layout title="Reading List | Urban Data Science & Equitable Cities" pageType="other">
+  <main id="main-content" class="pt-24 join-container">
+    <div class="join-header">
+      <h1 class="join-title">Reading List</h1>
+      <p class="join-subtitle">DOI-backed references rendered with metadata.</p>
+    </div>
+
+    {items.length === 0 ? (
+      <p>No publications yet.</p>
+    ) : (
+      <ul class="reading-list">
+        {items.map((p) => (
+          <li class="reading-item">
+            <div class="reading-title">
+              {p.title}
+              {p.year && <span class="reading-venue"> · {p.year}</span>}
+            </div>
+            <div class="reading-desc">
+              {p.authors.join(", ")}
+              {p.venue && ` · ${p.venue}`}
+            </div>
+            <div class="reading-links">
+              {p.url && <a class="underline" href={p.url} target="_blank" rel="noopener">Link</a>}
+              <a class="underline" href={`https://doi.org/${p.doi}`} target="_blank" rel="noopener">DOI</a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </main>
+</Layout>
+
+
