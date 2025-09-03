@@ -1208,6 +1208,72 @@ html[data-theme="dark"] .btn-secondary {
   color: rgba(var(--color-text-base), 0.7);
 }
 
+/* Legacy embedded table form (Cornell Lists) */
+.join-form-legacy table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0.5rem 0.6rem; /* space between cells */
+}
+
+.join-form-legacy td {
+  vertical-align: middle;
+}
+
+.join-form-legacy td:first-child {
+  width: 200px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.join-form-legacy td:last-child {
+  white-space: nowrap;
+}
+
+.join-form-legacy input[type="text"] {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(var(--color-border), 1);
+  border-radius: 8px;
+  background: rgb(var(--color-fill));
+  color: rgb(var(--color-text-base));
+  box-sizing: border-box;
+}
+
+.join-form-legacy input[type="text"]:focus {
+  outline: none;
+  border-color: rgb(var(--color-accent));
+  box-shadow: 0 0 0 3px rgba(var(--color-accent), 0.15);
+}
+
+.join-form-legacy input[type="submit"] {
+  background-color: #B31B1B; /* Cornell red */
+  color: white;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.join-form-legacy input[type="submit"]:hover {
+  background-color: #8F1414;
+}
+
+@media (max-width: 640px) {
+  .join-form-legacy td:first-child {
+    width: auto;
+    text-align: left;
+  }
+  .join-form-legacy tr td {
+    display: block;
+    width: 100%;
+  }
+  .join-form-legacy td:last-child {
+    margin-top: 0.5rem;
+  }
+}
+
 .join-links {
   display: flex;
   gap: 0.5rem;

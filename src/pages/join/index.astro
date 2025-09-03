@@ -1,7 +1,40 @@
 ---
 import Layout from "@layouts/Layout.astro";
 const successParam = Astro.url.searchParams.get('success');
-const successURL = new URL('/join?success=1', Astro.url.origin).href;
+const signupHtml = `
+<form action="https://www.list.cornell.edu/subscribe/subscribe.tml" method="POST">
+        <table border=0 cellspacing=0 cellpadding=3>
+            <tr>
+                <td align="right">
+                    <font size=1>Email address: </font>
+                </td>
+                <td>
+                    <input type="text" name="email" value="" SIZE=10>
+                </td>
+                <td>
+                <input type="submit" class="btn" value="subscribe" title="subscribe" alt="subscribe"  name="subscribe" align="left">
+                </td>
+            </tr>
+        <tr>
+            <td align="right">
+                <font size=1><I>(required)</I> Your name: </font>
+            </td>
+            <td>
+                <INPUT TYPE="text" NAME="name" VALUE="" SIZE=10 MAXLENGTH=100>
+            </td>
+        </tr>
+        </table>
+    <input type="hidden" name="list" value="urban-data-science-rg-l"><input type="hidden" name="lists" value="urban-data-science-rg-l" >
+<input type="hidden" name="demographics" value="" >
+<input type="hidden" name="name_required" value="T" >
+<input type="hidden" name="pw_required" value="" >
+<input type="hidden" name="confirm" value="one" >
+<input type="hidden" name="showconfirm" value="T" >
+<input type="hidden" name="url" value="" >
+<input type="hidden" name="appendsubinfotourl" value="" >
+<input type="hidden" name="secx" value="de8c4a09" >
+
+</form>`;
 ---
 
 <Layout title="Join Us | Urban Data Science & Equitable Cities" pageType="other">
@@ -21,36 +54,9 @@ const successURL = new URL('/join?success=1', Astro.url.origin).href;
           </div>
         </div>
       ) : (
-      <form class="join-form" action="https://www.list.cornell.edu/subscribe/subscribe.tml" method="POST">
-        <div class="form-grid">
-          <label for="email" class="form-label">Email address<span aria-hidden="true">*</span></label>
-          <div class="form-field">
-            <input id="email" name="email" type="email" class="join-input" required />
-          </div>
-          <div class="form-action">
-            <button type="submit" class="join-btn" name="subscribe" value="Subscribe" title="Subscribe">Subscribe</button>
-          </div>
-
-          <label for="name" class="form-label">Your name<span aria-hidden="true">*</span></label>
-          <div class="form-field span-2">
-            <input id="name" name="name" type="text" class="join-input" maxlength="100" required />
-          </div>
-        </div>
-
-        <!-- Hidden fields required by Cornell list service -->
-        <input type="hidden" name="list" value="urban-data-science-rg-l" />
-        <input type="hidden" name="lists" value="urban-data-science-rg-l" />
-        <input type="hidden" name="demographics" value="" />
-        <input type="hidden" name="name_required" value="T" />
-        <input type="hidden" name="pw_required" value="" />
-        <input type="hidden" name="confirm" value="one" />
-        <input type="hidden" name="showconfirm" value="T" />
-        <input type="hidden" name="url" value={successURL} />
-        <input type="hidden" name="appendsubinfotourl" value="" />
-        <input type="hidden" name="secx" value="880cb564" />
-
-        <p class="join-footnote">We respect your inbox. You can unsubscribe at any time.</p>
-      </form>
+      <div class="join-form join-form-legacy">
+        <Fragment set:html={signupHtml} />
+      </div>
       )}
 
       <div class="join-links">
