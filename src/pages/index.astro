@@ -15,6 +15,16 @@ const projects = await getCollection("projects");
 const speakers = await getCollection("speakers");
 const sortedSpeakers = speakers.sort((a: CollectionEntry<'speakers'>, b: CollectionEntry<'speakers'>) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
 
+// Build small view models for homepage speaker cards, with derived tags
+type HomeSpeakerView = { entry: CollectionEntry<'speakers'>; displayTags: string[] };
+const homeSpeakerViews: HomeSpeakerView[] = sortedSpeakers.slice(0, 4).map((entry: CollectionEntry<'speakers'>) => {
+  const baseTags: string[] = entry.data.tags ?? [];
+  const isGuest: boolean = (entry.data.affiliation ?? '').toLowerCase() === 'guest speaker';
+  const hasGuestTag: boolean = baseTags.some((t: string) => t.toLowerCase() === 'guest speaker');
+  const displayTags: string[] = (isGuest && !hasGuestTag) ? [...baseTags, 'guest speaker'] : baseTags;
+  return { entry, displayTags } as HomeSpeakerView;
+});
+
 // Sort projects by order field
 const sortedProjects = projects.sort((a: CollectionEntry<'projects'>, b: CollectionEntry<'projects'>) => 
   (a.data.order || Infinity) - (b.data.order || Infinity)
@@ -81,22 +91,29 @@ const socialCount = SOCIALS.filter(social => social.active).length;
       <section id="speakers">
         <h3 class="subsection-heading">Recent Speakers & Activites</h3>
         <div class="talks-list home-talks">
-          {sortedSpeakers.slice(0, 4).map((entry: CollectionEntry<'speakers'>) => (
+          {homeSpeakerViews.map((view: HomeSpeakerView) => (
             <article class="talk-card">
               <div class="talk-date">
-                {entry.data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                {view.entry.data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
-              <h3 class="talk-title">{entry.data.talkTitle}</h3>
+              <h3 class="talk-title">{view.entry.data.talkTitle}</h3>
               <div class="talk-meta">
-                <span class="talk-speaker">{entry.data.name}</span>
-                {entry.data.affiliation && <span class="talk-divider">·</span>}
-                {entry.data.affiliation && <span class="talk-affiliation">{entry.data.affiliation}</span>}
+                <span class="talk-speaker">{view.entry.data.name}</span>
+                {view.entry.data.affiliation && view.entry.data.affiliation.toLowerCase() !== 'guest speaker' && <span class="talk-divider">·</span>}
+                {view.entry.data.affiliation && view.entry.data.affiliation.toLowerCase() !== 'guest speaker' && <span class="talk-affiliation">{view.entry.data.affiliation}</span>}
               </div>
-              {entry.data.abstract && <p class="talk-abstract">{entry.data.abstract}</p>}
+              {(view.displayTags && view.displayTags.length > 0) && (
+                <div class="talk-tags">
+                  {view.displayTags.map((t: string) => (
+                    <span class="tag-pill" data-tag={t.toLowerCase()}>{t}</span>
+                  ))}
+                </div>
+              )}
+              {view.entry.data.abstract && <p class="talk-abstract">{view.entry.data.abstract}</p>}
               <div class="talk-links">
-                {entry.data.website && (<a class="talk-link" href={entry.data.website} target="_blank" rel="noopener">Website</a>)}
-                {entry.data.slidesUrl && (<a class="talk-link" href={entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
-                {entry.data.recordingUrl && (<a class="talk-link" href={entry.data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
+                {view.entry.data.website && (<a class="talk-link" href={view.entry.data.website} target="_blank" rel="noopener">Website</a>)}
+                {view.entry.data.slidesUrl && (<a class="talk-link" href={view.entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
+                {view.entry.data.recordingUrl && (<a class="talk-link" href={view.entry.data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
               </div>
             </article>
           ))}

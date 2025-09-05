@@ -1063,6 +1063,46 @@ html[data-theme="dark"] .btn-secondary {
   opacity: 0.8;
 }
 
+.tag-filter-panel {
+  max-width: 960px;
+  margin: 0.5rem auto 1rem auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(var(--color-accent), 0.6);
+  color: rgb(var(--color-accent));
+  background: rgba(var(--color-accent), 0.08);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.tag-pill:hover,
+.tag-pill[aria-pressed="true"] {
+  background: rgba(var(--color-accent), 0.18);
+  border-color: rgba(var(--color-accent), 0.9);
+}
+
+.tag-pill--all {
+  font-weight: 600;
+}
+
+.talk-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
 .talk-card {
   border: 1px solid rgb(var(--color-border));
   background: rgba(var(--color-card), 0.25);

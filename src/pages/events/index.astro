@@ -1,18 +1,71 @@
 ---
 import Layout from "@layouts/Layout.astro";
-import { getCollection } from "astro:content";
-const speakers = await getCollection("speakers");
-const sortedSpeakers = speakers.sort((a, b) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
+import Header from "@components/Header.astro";
+import Footer from "@components/Footer.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+
+const speakers: CollectionEntry<'speakers'>[] = await getCollection("speakers");
+const sortedSpeakers: CollectionEntry<'speakers'>[] = speakers.sort(
+  (a: CollectionEntry<'speakers'>, b: CollectionEntry<'speakers'>) => b.data.eventDate.getTime() - a.data.eventDate.getTime()
+);
 // Group by year for anchors
-const groupedByYear = sortedSpeakers.reduce((acc: Record<number, typeof sortedSpeakers>, entry) => {
-  const year = entry.data.eventDate.getFullYear();
-  (acc[year] ||= [] as any).push(entry);
-  return acc;
-}, {} as Record<number, typeof sortedSpeakers>);
-const years = Object.keys(groupedByYear).map(Number).sort((a, b) => b - a);
+const groupedByYear: Record<number, CollectionEntry<'speakers'>[]> = sortedSpeakers.reduce(
+  (acc: Record<number, CollectionEntry<'speakers'>[]>, entry: CollectionEntry<'speakers'>) => {
+    const year = entry.data.eventDate.getFullYear();
+    (acc[year] ||= []).push(entry);
+    return acc;
+  },
+  {} as Record<number, CollectionEntry<'speakers'>[]>
+);
+const years: number[] = Object.keys(groupedByYear).map(Number).sort((a: number, b: number) => b - a);
+
+// Precompute view models per year with normalized tags & keyword strings
+type TalkView = {
+  entry: CollectionEntry<'speakers'>;
+  displayTags: string[];
+  dataTagsAttr: string;
+  keywords: string;
+};
+
+const viewsByYear: Record<number, TalkView[]> = {};
+for (const year of years) {
+  const items = groupedByYear[year].map((entry: CollectionEntry<'speakers'>) => {
+    const data = entry.data;
+    const baseTags: string[] = data.tags ?? [];
+    const isGuest = (data.affiliation ?? '').toLowerCase() === 'guest speaker';
+    const hasGuestTag = baseTags.some((t: string) => t.toLowerCase() === 'guest speaker');
+    const displayTags = (isGuest && !hasGuestTag) ? [...baseTags, 'guest speaker'] : baseTags;
+    const dataTagsAttr = displayTags.map((t: string) => t.toLowerCase()).join(',');
+    const keywords = (
+      (data.talkTitle || '') + ' ' +
+      (data.name || '') + ' ' +
+      (data.affiliation || '') + ' ' +
+      (data.abstract || '')
+    ).toLowerCase();
+    return { entry, displayTags, dataTagsAttr, keywords } satisfies TalkView;
+  });
+  viewsByYear[year] = items;
+}
+
+// Build unique list of tags (include derived 'guest speaker' tags from affiliation)
+const allTags: string[] = Array.from(
+  new Map(
+    sortedSpeakers
+      .flatMap((entry: CollectionEntry<'speakers'>) => {
+        const base = entry.data.tags ?? [];
+        const isGuest = entry.data.affiliation?.toLowerCase() === 'guest speaker';
+        const needsGuestTag = isGuest && !base.some((t: string) => t.toLowerCase() === 'guest speaker');
+        const combined = needsGuestTag ? [...base, 'guest speaker'] : base;
+        return combined;
+      })
+      // Preserve first-seen case, but de-duplicate case-insensitively
+      .map((t: string): readonly [string, string] => [t.toLowerCase(), t] as const)
+  ).values()
+).sort((a: string, b: string) => a.localeCompare(b));
 ---
 
 <Layout title="Talks | Urban Data Science & Equitable Cities" pageType="other">
+  <Header />
   <main id="main-content" class="pt-24 talks-page">
     <header class="talks-header">
       <h1 class="talks-title">Talks</h1>
@@ -31,26 +84,41 @@ const years = Object.keys(groupedByYear).map(Number).sort((a, b) => b - a);
       )}
     </div>
 
+    {/* Tag filter panel (only on All Talks page) */}
+    <div id="tag-filter-panel" class="tag-filter-panel" aria-label="Filter by tags">
+      <button class="tag-pill tag-pill--all" data-tag="__all" aria-pressed="true">All</button>
+      {allTags.map((tag: string) => (
+        <button class="tag-pill" data-tag={tag}>{tag}</button>
+      ))}
+    </div>
+
     {years.map(year => (
       <section id={`year-${year}`} class="talks-year">
         <h2 class="year-heading">{year}</h2>
         <div class="talks-list" data-year={year}>
-          {groupedByYear[year].map(({ data }) => (
-            <article class="talk-card" data-keywords={(data.talkTitle + ' ' + data.name + ' ' + (data.affiliation||'') + ' ' + (data.abstract||'')).toLowerCase()}>
+          {viewsByYear[year].map((view) => (
+            <article class="talk-card" data-tags={view.dataTagsAttr} data-keywords={view.keywords}>
               <div class="talk-date">
-                {data.eventDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                {view.entry.data.eventDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
-              <h3 class="talk-title">{data.talkTitle}</h3>
+              <h3 class="talk-title">{view.entry.data.talkTitle}</h3>
               <div class="talk-meta">
-                <span class="talk-speaker">{data.name}</span>
-                {data.affiliation && <span class="talk-divider">·</span>}
-                {data.affiliation && <span class="talk-affiliation">{data.affiliation}</span>}
+                <span class="talk-speaker">{view.entry.data.name}</span>
+                {view.entry.data.affiliation && view.entry.data.affiliation.toLowerCase() !== 'guest speaker' && <span class="talk-divider">·</span>}
+                {view.entry.data.affiliation && view.entry.data.affiliation.toLowerCase() !== 'guest speaker' && <span class="talk-affiliation">{view.entry.data.affiliation}</span>}
               </div>
-              {data.abstract && <p class="talk-abstract">{data.abstract}</p>}
+              {(view.displayTags && view.displayTags.length > 0) && (
+                <div class="talk-tags">
+                  {view.displayTags.map((t) => (
+                    <span class="tag-pill" data-tag={t.toLowerCase()}>{t}</span>
+                  ))}
+                </div>
+              )}
+              {view.entry.data.abstract && <p class="talk-abstract">{view.entry.data.abstract}</p>}
               <div class="talk-links">
-                {data.website && (<a class="talk-link" href={data.website} target="_blank" rel="noopener">Website</a>)}
-                {data.slidesUrl && (<a class="talk-link" href={data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
-                {data.recordingUrl && (<a class="talk-link" href={data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
+                {view.entry.data.website && (<a class="talk-link" href={view.entry.data.website} target="_blank" rel="noopener">Website</a>)}
+                {view.entry.data.slidesUrl && (<a class="talk-link" href={view.entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
+                {view.entry.data.recordingUrl && (<a class="talk-link" href={view.entry.data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
               </div>
             </article>
           ))}
@@ -61,20 +129,24 @@ const years = Object.keys(groupedByYear).map(Number).sort((a, b) => b - a);
     <p id="no-results" class="talks-no-results" hidden>No talks match your search.</p>
 
     <footer class="talks-footer">
-      <a class="underline" href="https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/" target="_blank" rel="noopener">Official Working Group Page</a>
+      <a class="underline" href="https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/" target="_blank" rel="noopener"> More Working Group Info at EAAMO Bridges</a>
     </footer>
   </main>
+  <Footer />
 </Layout>
 
 <script>
   const input = document.getElementById('talks-search') as HTMLInputElement | null;
   const noResults = document.getElementById('no-results') as HTMLElement | null;
   const sections = Array.from(document.querySelectorAll('.talks-list')) as HTMLElement[];
+  const tagPanel = document.getElementById('tag-filter-panel') as HTMLElement | null;
+  const tagButtons = Array.from(document.querySelectorAll('#tag-filter-panel .tag-pill')) as HTMLButtonElement[];
+  let activeTag: string = '__all';
 
   const normalize = (s: string) => (s || '').toLowerCase();
 
-  const filter = (q: string) => {
-    const query = normalize(q);
+  const applyFilters = () => {
+    const query = normalize(input?.value || '');
     let visibleCount = 0;
 
     sections.forEach((section: HTMLElement) => {
@@ -82,7 +154,11 @@ const years = Object.keys(groupedByYear).map(Number).sort((a, b) => b - a);
       const sectionCards = Array.from(section.querySelectorAll('.talk-card')) as HTMLElement[];
       sectionCards.forEach((card: HTMLElement) => {
         const kw = card.getAttribute('data-keywords') || '';
-        const show = query === '' || kw.includes(query);
+        const tagsAttr = card.getAttribute('data-tags') || '';
+        const tags = tagsAttr.split(',').map(t => t.trim()).filter(Boolean);
+        const matchesText = query === '' || kw.includes(query);
+        const matchesTag = activeTag === '__all' || tags.includes(activeTag);
+        const show = matchesText && matchesTag;
         card.style.display = show ? '' : 'none';
         if (show) sectionVisible++;
       });
@@ -97,11 +173,22 @@ const years = Object.keys(groupedByYear).map(Number).sort((a, b) => b - a);
   let t: number | undefined;
   input?.addEventListener('input', () => {
     if (t) window.clearTimeout(t);
-    t = window.setTimeout(() => filter(input.value), 120);
+    t = window.setTimeout(() => applyFilters(), 120);
+  });
+
+  // Tag filtering interaction
+  tagPanel?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const btn = target.closest('.tag-pill') as HTMLButtonElement | null;
+    if (!btn) return;
+    const tag = btn.getAttribute('data-tag') || '__all';
+    activeTag = tag;
+    tagButtons.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+    applyFilters();
   });
 
   // Initialize
-  filter('');
+  applyFilters();
 </script>
 
 
