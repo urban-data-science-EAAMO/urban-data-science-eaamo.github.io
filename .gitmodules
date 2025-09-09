@@ -1,3 +1,6 @@
 [submodule "dev/pendulating.github.io"]
 	path = dev/pendulating.github.io
 	url = git@github.com:pendulating/pendulating.github.io.git
+[submodule "sub/pendulating.github.io"]
+	path = sub/pendulating.github.io
+	url = git@github.com:pendulating/pendulating.github.io.git
