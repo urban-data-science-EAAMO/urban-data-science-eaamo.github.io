@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   reading_list:
-    if: github.event.repository.full_name == github.repository && (contains(github.event.issue.labels.*.name, 'reading-list') || contains(github.event.issue.labels.*.name, 'publication') || contains(github.event.issue.labels.*.name, 'publications') || contains(github.event.issue.labels.*.name, 'paper') || contains(github.event.issue.labels.*.name, 'papers'))
+    if: github.event.repository.full_name == github.repository && github.event.action == 'labeled' && (contains(github.event.issue.labels.*.name, 'reading-list') || contains(github.event.issue.labels.*.name, 'publication') || contains(github.event.issue.labels.*.name, 'publications') || contains(github.event.issue.labels.*.name, 'paper') || contains(github.event.issue.labels.*.name, 'papers'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +42,12 @@ jobs:
 
             const hget = (label) => (headingMap[(label || '').toLowerCase()] || '').trim();
 
-            // DOI from heading or fallback to regex in body
+            // DOI from heading or fallback to regex in body, then sanitize common prefixes
             let doi = hget('DOI') || hget('doi');
             if (!doi) {
               const m = body.match(/\b10\.[0-9]{4,9}\/[A-Za-z0-9._;()/:<>\-+%~#&=,]+/);
               doi = m ? m[0] : '';
             }
-            // strip common prefixes like "doi:" or "https://doi.org/"
             doi = (doi || '').trim().replace(/^doi\s*:/i, '').replace(/^https?:\/\/doi\.org\//i, '').trim();
             if (!doi) core.setFailed('DOI is required');
 
@@ -159,6 +158,7 @@ jobs:
           set -euo pipefail
           esc() { printf "%s" "$1" | sed "s/'/''/g"; }
           safe_slug() { printf "%s" "$1" | sed 's#[/:]#-#g' | tr -cd '[:alnum:]-._'; }
+          is_url() { printf "%s" "$1" | grep -Eqi '^https?://[[:alnum:]][[:alnum:].:/_%+~#?&=;,@\-]*$'; }
 
           slug=$(safe_slug "$DOI")
           file_path="src/content/publications/${slug}.md"
@@ -199,9 +199,9 @@ jobs:
             echo "year: $C_YEAR" >> "$file_path"
           fi
 
-          if [ -n "${P_URL:-}" ]; then
+          if [ -n "${P_URL:-}" ] && is_url "$P_URL"; then
             echo "url: '$(esc "$P_URL")'" >> "$file_path"
-          elif [ -n "${C_URL:-}" ]; then
+          elif [ -n "${C_URL:-}" ] && is_url "$C_URL"; then
             echo "url: '$(esc "$C_URL")'" >> "$file_path"
           fi
 
@@ -273,7 +273,7 @@ jobs:
             }
 
   member:
-    if: github.event.repository.full_name == github.repository && (contains(github.event.issue.labels.*.name, 'member') || contains(github.event.issue.labels.*.name, 'members'))
+    if: github.event.repository.full_name == github.repository && github.event.action == 'labeled' && (contains(github.event.issue.labels.*.name, 'member') || contains(github.event.issue.labels.*.name, 'members'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
