@@ -25,23 +25,43 @@ jobs:
         with:
           script: |
             const body = context.payload.issue.body || '';
-            function getField(id) {
-              const re = new RegExp(`(?<=\n### ${id}\n)\\s*([^\n]+)`, 'i');
-              const m = body.match(re); return m ? m[1].trim() : '';
+
+            // Build a map of headings → content; works with GitHub issue forms
+            const headingMap = {};
+            {
+              const lines = body.split(/\r?\n/);
+              let current = null; let buf = [];
+              const flush = () => { if (current) { headingMap[current.toLowerCase()] = buf.join('\n').trim(); buf = []; } };
+              for (const line of lines) {
+                const h = line.match(/^\s*#{1,6}\s*(.*?)\s*$/);
+                if (h) { flush(); current = h[1]; continue; }
+                if (current) buf.push(line);
+              }
+              flush();
             }
-            const doi = getField('DOI');
+
+            const hget = (label) => (headingMap[(label || '').toLowerCase()] || '').trim();
+
+            // DOI from heading or fallback to regex in body
+            let doi = hget('DOI') || hget('doi');
+            if (!doi) {
+              const m = body.match(/\b10\.\d{4,9}\/[\w.()/:;<>\-_%+~#&=,]+/i);
+              doi = m ? m[0] : '';
+            }
             if (!doi) core.setFailed('DOI is required');
-            const title = getField('Title (optional)');
-            const authors = getField('Authors (optional)');
-            const venue = getField('Venue (optional)');
-            const year = getField('Year (optional)');
-            const url = getField('URL (optional)');
+
+            const title = hget('Title (optional)') || hget('Title');
+            const authors = hget('Authors (optional)') || hget('Authors');
+            const venue = hget('Venue (optional)') || hget('Venue');
+            const year = hget('Year (optional)') || hget('Year');
+            const url = hget('URL (optional)') || hget('URL');
+
             core.setOutput('doi', doi);
-            core.setOutput('title', title);
-            core.setOutput('authors', authors);
-            core.setOutput('venue', venue);
-            core.setOutput('year', year);
-            core.setOutput('url', url);
+            core.setOutput('title', (title || '').trim());
+            core.setOutput('authors', (authors || '').trim());
+            core.setOutput('venue', (venue || '').trim());
+            core.setOutput('year', (year || '').trim());
+            core.setOutput('url', (url || '').trim());
 
       - name: Resolve DOI via Crossref
         id: crossref
