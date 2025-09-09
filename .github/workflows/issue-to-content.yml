@@ -12,13 +12,7 @@ permissions:
 
 jobs:
   reading_list:
-    if: github.event.repository.full_name == github.repository && (
-      contains(github.event.issue.labels.*.name, 'reading-list') ||
-      contains(github.event.issue.labels.*.name, 'publication') ||
-      contains(github.event.issue.labels.*.name, 'publications') ||
-      contains(github.event.issue.labels.*.name, 'paper') ||
-      contains(github.event.issue.labels.*.name, 'papers')
-    )
+    if: github.event.repository.full_name == github.repository && (contains(github.event.issue.labels.*.name, 'reading-list') || contains(github.event.issue.labels.*.name, 'publication') || contains(github.event.issue.labels.*.name, 'publications') || contains(github.event.issue.labels.*.name, 'paper') || contains(github.event.issue.labels.*.name, 'papers'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -248,10 +242,7 @@ jobs:
             }
 
   member:
-    if: github.event.repository.full_name == github.repository && (
-      contains(github.event.issue.labels.*.name, 'member') ||
-      contains(github.event.issue.labels.*.name, 'members')
-    )
+    if: github.event.repository.full_name == github.repository && (contains(github.event.issue.labels.*.name, 'member') || contains(github.event.issue.labels.*.name, 'members'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
