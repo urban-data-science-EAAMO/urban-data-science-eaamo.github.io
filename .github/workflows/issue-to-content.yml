@@ -8,13 +8,22 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: write
 
 jobs:
   reading_list:
-    if: github.event.repository.full_name == github.repository && contains(github.event.issue.labels.*.name, 'reading-list')
+    if: github.event.repository.full_name == github.repository && (
+      contains(github.event.issue.labels.*.name, 'reading-list') ||
+      contains(github.event.issue.labels.*.name, 'publication') ||
+      contains(github.event.issue.labels.*.name, 'publications') ||
+      contains(github.event.issue.labels.*.name, 'paper') ||
+      contains(github.event.issue.labels.*.name, 'papers')
+    )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Extract issue fields
         id: parse
@@ -122,39 +131,55 @@ jobs:
           slug=$(echo "${{ steps.parse.outputs.doi }}" | sed 's#[/:]#-#g' | tr -cd '[:alnum:]-._')
           file_path="src/content/publications/${slug}.md"
           mkdir -p "$(dirname "$file_path")"
+
+          esc() { printf "%s" "$1" | sed "s/'/''/g"; }
+
+          DOI="${{ steps.parse.outputs.doi }}"
+          P_TITLE="${{ steps.parse.outputs.title }}"; C_TITLE="${{ steps.crossref.outputs.title }}"
+          P_AUTHORS="${{ steps.parse.outputs.authors }}"; C_AUTHORS_YAML="${{ steps.crossref.outputs.authors_yaml }}"
+          P_VENUE="${{ steps.parse.outputs.venue }}"; C_VENUE="${{ steps.crossref.outputs.venue }}"
+          P_YEAR="${{ steps.parse.outputs.year }}"; C_YEAR="${{ steps.crossref.outputs.year }}"
+          P_URL="${{ steps.parse.outputs.url }}"; C_URL="${{ steps.crossref.outputs.url }}"
+
           echo "---" > "$file_path"
-          echo "doi: ${{ steps.parse.outputs.doi }}" >> "$file_path"
-          # Title from issue or Crossref
-          if [ -n "${{ steps.parse.outputs.title }}" ]; then \
-            echo "title: ${{ steps.parse.outputs.title }}" >> "$file_path"; \
-          elif [ -n "${{ steps.crossref.outputs.title }}" ]; then \
-            echo "title: ${{ steps.crossref.outputs.title }}" >> "$file_path"; \
+          echo "doi: '$(esc "$DOI")'" >> "$file_path"
+
+          # Title from issue or Crossref (quoted)
+          if [ -n "$P_TITLE" ]; then
+            echo "title: '$(esc "$P_TITLE")'" >> "$file_path"
+          elif [ -n "$C_TITLE" ]; then
+            echo "title: '$(esc "$C_TITLE")'" >> "$file_path"
           fi
+
           # Authors from issue or Crossref
-          if [ -n "${{ steps.parse.outputs.authors }}" ]; then \
-            authors_list=$(echo "${{ steps.parse.outputs.authors }}" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^ +| +$/, "", $i); printf "%s\"%s\"", (i>1?", ":""), $i}}'); \
-            echo "authors: [${authors_list}]" >> "$file_path"; \
-          elif [ -n "${{ steps.crossref.outputs.authors_yaml }}" ]; then \
-            echo "authors: ${{ steps.crossref.outputs.authors_yaml }}" >> "$file_path"; \
+          if [ -n "$P_AUTHORS" ]; then
+            authors_list=$(echo "$P_AUTHORS" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^ +| +$/, "", $i); gsub(/"/, "\\\"", $i); printf "%s\"%s\"", (i>1?", ":""), $i}}')
+            echo "authors: [${authors_list}]" >> "$file_path"
+          elif [ -n "$C_AUTHORS_YAML" ]; then
+            echo "authors: $C_AUTHORS_YAML" >> "$file_path"
           fi
-          # Venue from issue or Crossref
-          if [ -n "${{ steps.parse.outputs.venue }}" ]; then \
-            echo "venue: ${{ steps.parse.outputs.venue }}" >> "$file_path"; \
-          elif [ -n "${{ steps.crossref.outputs.venue }}" ]; then \
-            echo "venue: ${{ steps.crossref.outputs.venue }}" >> "$file_path"; \
+
+          # Venue from issue or Crossref (quoted)
+          if [ -n "$P_VENUE" ]; then
+            echo "venue: '$(esc "$P_VENUE")'" >> "$file_path"
+          elif [ -n "$C_VENUE" ]; then
+            echo "venue: '$(esc "$C_VENUE")'" >> "$file_path"
           fi
-          # Year from issue or Crossref
-          if [ -n "${{ steps.parse.outputs.year }}" ]; then \
-            echo "year: ${{ steps.parse.outputs.year }}" >> "$file_path"; \
-          elif [ -n "${{ steps.crossref.outputs.year }}" ]; then \
-            echo "year: ${{ steps.crossref.outputs.year }}" >> "$file_path"; \
+
+          # Year from issue or Crossref (numeric only)
+          if echo "$P_YEAR" | grep -Eq '^[0-9]{4}$'; then
+            echo "year: $P_YEAR" >> "$file_path"
+          elif echo "$C_YEAR" | grep -Eq '^[0-9]{4}$'; then
+            echo "year: $C_YEAR" >> "$file_path"
           fi
-          # URL from issue or Crossref
-          if [ -n "${{ steps.parse.outputs.url }}" ]; then \
-            echo "url: ${{ steps.parse.outputs.url }}" >> "$file_path"; \
-          elif [ -n "${{ steps.crossref.outputs.url }}" ]; then \
-            echo "url: ${{ steps.crossref.outputs.url }}" >> "$file_path"; \
+
+          # URL from issue or Crossref (quoted)
+          if [ -n "$P_URL" ]; then
+            echo "url: '$(esc "$P_URL")'" >> "$file_path"
+          elif [ -n "$C_URL" ]; then
+            echo "url: '$(esc "$C_URL")'" >> "$file_path"
           fi
+
           echo "tags: [publication]" >> "$file_path"
           echo "---" >> "$file_path"
 
@@ -178,50 +203,218 @@ jobs:
           labels: content, automated pr
           sign-commits: true
 
+      - name: Auto-merge PR (reading list)
+        if: steps.cpr.outputs.pull-request-number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const number = Number('${{ steps.cpr.outputs.pull-request-number }}');
+            try {
+              await github.rest.pulls.merge({ owner, repo, pull_number: number, merge_method: 'squash' });
+              core.info(`Merged PR #${number}`);
+            } catch (e) {
+              core.info(`Auto-merge failed for PR #${number}: ${e.message}`);
+            }
+
+      - name: Trigger deploy workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ref = context.payload?.repository?.default_branch || 'main';
+            try {
+              await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: 'deploy.yml', ref });
+              core.info('Triggered deploy.yml');
+            } catch (e) {
+              core.info(`Failed to dispatch deploy.yml: ${e.message}`);
+            }
+
+      - name: Close originating issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed'
+              });
+            } catch (e) {
+              core.info(`Failed to close issue: ${e.message}`);
+            }
+
   member:
-    if: contains(github.event.issue.labels.*.name, 'member')
+    if: github.event.repository.full_name == github.repository && (
+      contains(github.event.issue.labels.*.name, 'member') ||
+      contains(github.event.issue.labels.*.name, 'members')
+    )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Extract issue fields
+      - name: Ensure 'member' label (if issue looks like member form)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (!issue || issue.state !== 'open') return;
+            const labels = (issue.labels || []).map(l => typeof l === 'string' ? l : l.name);
+            const body = issue.body || '';
+            const looksLikeForm = /Full name/i.test(body) && /(Image URL|repo path|image\s*:)/i.test(body);
+            if (!labels.includes('member') && looksLikeForm) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['member']
+              });
+            }
+
+      - name: Parse issue form
         id: parse
         uses: actions/github-script@v7
         with:
           script: |
             const body = context.payload.issue.body || '';
-            function getField(id) {
-              const re = new RegExp(`(?<=\n### ${id}\n)\\s*([^\n]+)`, 'i');
-              const m = body.match(re); return m ? m[1].trim() : '';
+
+            // Try to parse a fenced YAML block first (most robust)
+            let yamlBlock;
+            {
+              const m = body.match(/```yaml[\s\S]*?```/i);
+              if (m) {
+                yamlBlock = m[0].replace(/```yaml/i, '').replace(/```\s*$/i, '').trim();
+              }
             }
-            const name = getField('Full name');
-            if (!name) core.setFailed('Full name is required');
-            const role = getField('Role (optional)');
-            const affiliation = getField('Affiliation (optional)');
-            const image = getField('Image URL (optional)');
-            const website = getField('Website (optional)');
-            const order = getField('Order (optional)');
-            const tags = getField('Tags (optional)');
+            const data = {};
+            if (yamlBlock) {
+              const lines = yamlBlock.split(/\r?\n/);
+              for (const line of lines) {
+                const mm = line.match(/^\s*([A-Za-z0-9_]+)\s*:\s*"?(.*?)"?\s*$/);
+                if (mm) data[mm[1].toLowerCase()] = mm[2];
+              }
+            }
+
+            // Helper to build a map of headings → content
+            const headingMap = {};
+            if (!data.name || !data.image) {
+              const lines = body.split(/\r?\n/);
+              let current = null; let buf = [];
+              const flush = () => { if (current) { headingMap[current.toLowerCase()] = buf.join('\n').trim(); buf = []; } };
+              for (const line of lines) {
+                const h = line.match(/^\s*#{1,6}\s*(.*?)\s*$/);
+                if (h) { flush(); current = h[1]; continue; }
+                if (current) buf.push(line);
+              }
+              flush();
+            }
+
+            const fromHeadings = (needles) => {
+              for (const [k, v] of Object.entries(headingMap)) {
+                const lower = k.toLowerCase();
+                if (needles.some(n => lower.includes(n))) return (v || '').trim();
+              }
+              return '';
+            };
+            const extractInline = (key) => {
+              const m = body.match(new RegExp(`(^|\\r?\\n)\\s*${key}\\s*:\\s*(.+)`, 'i'));
+              return m ? m[2].trim() : '';
+            };
+
+            const lower = (s) => (s || '').toLowerCase();
+            let name = data.name || fromHeadings(['full name','name']) || extractInline('name');
+            let role = data.role || fromHeadings(['role']) || extractInline('role');
+            let affiliation = data.affiliation || fromHeadings(['affiliation']) || extractInline('affiliation');
+            let image = data.image || fromHeadings(['image url','image','repo path']) || extractInline('image');
+            let website = data.website || fromHeadings(['website','profile']) || extractInline('website');
+            let order = data.order || fromHeadings(['order','ordering']) || extractInline('order');
+            let tags = Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || fromHeadings(['tags']) || extractInline('tags'));
+
+            if (!name && context.payload.issue.title) {
+              const mt = context.payload.issue.title.match(/Add:\s*(.+)$/i);
+              if (mt) name = mt[1].trim();
+            }
+
+            const invalids = new Set(['', '_no response_', 'n/a', 'na', 'none', 'null', 'remote url (link)']);
+            const sanitizeWebsite = (u) => {
+              const s = (u || '').trim();
+              if (invalids.has(s.toLowerCase())) return 'https://example.com';
+              try { new URL(s); return s; } catch { return 'https://example.com'; }
+            };
+            const sanitizeImage = (img) => {
+              const s = (img || '').trim();
+              if (invalids.has(s.toLowerCase())) return '../../assets/vista.jpg';
+              if (/^https?:/i.test(s)) return s;
+              if (/^(\.\.\/){1,2}?assets\//i.test(s) || /^src\//i.test(s)) return s;
+              return '../../assets/vista.jpg';
+            };
+            const sanitizeOrder = (_) => 999;
+
+            website = sanitizeWebsite(website);
+            image = sanitizeImage(image);
+            order = String(sanitizeOrder(order));
+
+            if (!name) {
+              core.info('Missing required field: name. Skipping.');
+              core.setOutput('found', 'false');
+              return;
+            }
+            const slugify = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+            let slug = slugify(name);
+            if (!slug) { slug = 'user-' + Date.now(); }
+
+            core.setOutput('found', 'true');
             core.setOutput('name', name);
-            core.setOutput('role', role);
-            core.setOutput('affiliation', affiliation);
+            core.setOutput('role', role || '');
+            core.setOutput('affiliation', affiliation || '');
             core.setOutput('image', image);
-            core.setOutput('website', website);
-            core.setOutput('order', order);
-            core.setOutput('tags', tags);
+            core.setOutput('website', website || '');
+            core.setOutput('order', order || '999');
+            core.setOutput('slug', slug);
+            core.setOutput('tags', (tags || '').trim());
+
+      - name: Ensure directories
+        if: steps.parse.outputs.found == 'true'
+        run: |
+          mkdir -p src/content/members src/assets/members
+
+      - name: Download image if URL
+        id: dl
+        if: steps.parse.outputs.found == 'true'
+        run: |
+          IMG="${{ steps.parse.outputs.image }}"
+          if echo "$IMG" | grep -qi '^http'; then
+            path=$(echo "$IMG" | sed -E 's|^[^:/]+://[^/]+||' | cut -d'?' -f1 | cut -d'#' -f1)
+            filename=$(basename "$path")
+            ext="${filename##*.}"
+            if [ "$filename" = "$ext" ]; then ext="jpg"; fi
+            out="src/assets/members/${{ steps.parse.outputs.slug }}.$ext"
+            curl -L "$IMG" -o "$out"
+            echo "path=../../assets/members/$(basename "$out")" >> $GITHUB_OUTPUT
+          else
+            echo "path=$IMG" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create content file
+        if: steps.parse.outputs.found == 'true'
         run: |
-          slug=$(echo "${{ steps.parse.outputs.name }}" | awk '{print tolower($0)}' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+          slug="${{ steps.parse.outputs.slug }}"
           file_path="src/content/members/${slug}.md"
           mkdir -p "$(dirname "$file_path")"
+          IMAGE="${{ steps.dl.outputs.path }}"
+          if [ -z "$IMAGE" ]; then IMAGE="${{ steps.parse.outputs.image }}"; fi
           echo "---" > "$file_path"
-          echo "name: ${{ steps.parse.outputs.name }}" >> "$file_path"
-          if [ -n "${{ steps.parse.outputs.role }}" ]; then echo "role: ${{ steps.parse.outputs.role }}" >> "$file_path"; fi
-          if [ -n "${{ steps.parse.outputs.affiliation }}" ]; then echo "affiliation: ${{ steps.parse.outputs.affiliation }}" >> "$file_path"; fi
-          if [ -n "${{ steps.parse.outputs.image }}" ]; then echo "image: ${{ steps.parse.outputs.image }}" >> "$file_path"; fi
-          if [ -n "${{ steps.parse.outputs.website }}" ]; then echo "website: ${{ steps.parse.outputs.website }}" >> "$file_path"; fi
-          if [ -n "${{ steps.parse.outputs.order }}" ]; then echo "order: ${{ steps.parse.outputs.order }}" >> "$file_path"; fi
+          echo "name: \"${{ steps.parse.outputs.name }}\"" >> "$file_path"
+          echo "role: \"${{ steps.parse.outputs.role }}\"" >> "$file_path"
+          echo "affiliation: \"${{ steps.parse.outputs.affiliation }}\"" >> "$file_path"
+          echo "image: \"$IMAGE\"" >> "$file_path"
+          echo "website: \"${{ steps.parse.outputs.website }}\"" >> "$file_path"
+          echo "order: ${{ steps.parse.outputs.order }}" >> "$file_path"
           if [ -n "${{ steps.parse.outputs.tags }}" ]; then \
             tags_list=$(echo "${{ steps.parse.outputs.tags }}" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^ +| +$/, "", $i); printf "%s\"%s\"", (i>1?", ":""), $i}}'); \
             echo "tags: [${tags_list}]" >> "$file_path"; \
@@ -248,5 +441,49 @@ jobs:
           branch: ci/add-member-${{ github.event.issue.number }}
           labels: content, automated pr
           sign-commits: true
+
+      - name: Auto-merge PR (member)
+        if: steps.cpr.outputs.pull-request-number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const number = Number('${{ steps.cpr.outputs.pull-request-number }}');
+            try {
+              await github.rest.pulls.merge({ owner, repo, pull_number: number, merge_method: 'squash' });
+              core.info(`Merged PR #${number}`);
+            } catch (e) {
+              core.info(`Auto-merge failed for PR #${number}: ${e.message}`);
+            }
+
+      - name: Trigger deploy workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ref = context.payload?.repository?.default_branch || 'main';
+            try {
+              await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: 'deploy.yml', ref });
+              core.info('Triggered deploy.yml');
+            } catch (e) {
+              core.info(`Failed to dispatch deploy.yml: ${e.message}`);
+            }
+
+      - name: Close originating issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed'
+              });
+            } catch (e) {
+              core.info(`Failed to close issue: ${e.message}`);
+            }
 
 

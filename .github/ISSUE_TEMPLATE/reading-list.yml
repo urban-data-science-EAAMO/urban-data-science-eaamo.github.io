@@ -3,6 +3,10 @@ description: "Propose a paper (by DOI) for the Reading List"
 labels: ["reading-list"]
 title: "Add reading: <short-title-or-doi>"
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide the DOI. Title/authors/venue/year can be omitted; the bot will resolve via Crossref.
   - type: input
     id: doi
     attributes:
@@ -34,6 +38,30 @@ body:
     attributes:
       label: URL (optional)
       placeholder: "https://example.com/paper"
+  - type: markdown
+    attributes:
+      value: |
+        Example body the workflow understands:
+
+        ```
+        ### DOI
+        10.1145/3640792.3675740
+
+        ### Title (optional)
+        A cool paper
+
+        ### Authors (optional)
+        Jane Doe, John Smith
+
+        ### Venue (optional)
+        FOO'25
+
+        ### Year (optional)
+        2025
+
+        ### URL (optional)
+        https://doi.org/10.1145/3640792.3675740
+        ```
   - type: textarea
     id: notes
     attributes:

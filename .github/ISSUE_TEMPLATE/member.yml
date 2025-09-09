@@ -3,6 +3,20 @@ description: "Propose a new member card"
 labels: ["member"]
 title: "Add member: <full-name>"
 body:
+  - type: markdown
+    attributes:
+      value: |
+        You can either fill the fields below or paste a YAML block:
+
+        ```yaml
+        name: "Jane Doe"
+        role: "PhD Student"
+        affiliation: "Cornell Tech"
+        image: "https://example.com/avatar.jpg" # or ../../assets/members/jane-doe.jpg
+        website: "https://example.com"
+        order: 10
+        tags: [member]
+        ```
   - type: input
     id: name
     attributes:
@@ -21,7 +35,7 @@ body:
     id: image
     attributes:
       label: Image URL (optional)
-      description: "If omitted, you can add a local image later"
+      description: "Remote URL (downloaded automatically) or repo path under src/assets/members"
   - type: input
     id: website
     attributes:
@@ -35,5 +49,5 @@ body:
     id: tags
     attributes:
       label: Tags (optional)
-      description: "Comma-separated list (e.g., member, leadership)"
+      description: "Comma-separated or YAML array"
 
