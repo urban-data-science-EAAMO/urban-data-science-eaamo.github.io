@@ -45,9 +45,11 @@ jobs:
             // DOI from heading or fallback to regex in body
             let doi = hget('DOI') || hget('doi');
             if (!doi) {
-              const m = body.match(/\b10\.\d{4,9}\/[\w.()/:;<>\-_%+~#&=,]+/i);
+              const m = body.match(/\b10\.[0-9]{4,9}\/[A-Za-z0-9._;()/:<>\-+%~#&=,]+/);
               doi = m ? m[0] : '';
             }
+            // strip common prefixes like "doi:" or "https://doi.org/"
+            doi = (doi || '').trim().replace(/^doi\s*:/i, '').replace(/^https?:\/\/doi\.org\//i, '').trim();
             if (!doi) core.setFailed('DOI is required');
 
             const title = hget('Title (optional)') || hget('Title');
@@ -141,56 +143,65 @@ jobs:
 
       - name: Create content file
         if: steps.dup.outputs.exists != 'true'
+        env:
+          DOI: ${{ steps.parse.outputs.doi }}
+          P_TITLE: ${{ steps.parse.outputs.title }}
+          C_TITLE: ${{ steps.crossref.outputs.title }}
+          P_AUTHORS: ${{ steps.parse.outputs.authors }}
+          C_AUTHORS_YAML: ${{ steps.crossref.outputs.authors_yaml }}
+          P_VENUE: ${{ steps.parse.outputs.venue }}
+          C_VENUE: ${{ steps.crossref.outputs.venue }}
+          P_YEAR: ${{ steps.parse.outputs.year }}
+          C_YEAR: ${{ steps.crossref.outputs.year }}
+          P_URL: ${{ steps.parse.outputs.url }}
+          C_URL: ${{ steps.crossref.outputs.url }}
         run: |
-          slug=$(echo "${{ steps.parse.outputs.doi }}" | sed 's#[/:]#-#g' | tr -cd '[:alnum:]-._')
+          set -euo pipefail
+          esc() { printf "%s" "$1" | sed "s/'/''/g"; }
+          safe_slug() { printf "%s" "$1" | sed 's#[/:]#-#g' | tr -cd '[:alnum:]-._'; }
+
+          slug=$(safe_slug "$DOI")
           file_path="src/content/publications/${slug}.md"
           mkdir -p "$(dirname "$file_path")"
-
-          esc() { printf "%s" "$1" | sed "s/'/''/g"; }
-
-          DOI="${{ steps.parse.outputs.doi }}"
-          P_TITLE="${{ steps.parse.outputs.title }}"; C_TITLE="${{ steps.crossref.outputs.title }}"
-          P_AUTHORS="${{ steps.parse.outputs.authors }}"; C_AUTHORS_YAML="${{ steps.crossref.outputs.authors_yaml }}"
-          P_VENUE="${{ steps.parse.outputs.venue }}"; C_VENUE="${{ steps.crossref.outputs.venue }}"
-          P_YEAR="${{ steps.parse.outputs.year }}"; C_YEAR="${{ steps.crossref.outputs.year }}"
-          P_URL="${{ steps.parse.outputs.url }}"; C_URL="${{ steps.crossref.outputs.url }}"
 
           echo "---" > "$file_path"
           echo "doi: '$(esc "$DOI")'" >> "$file_path"
 
-          # Title from issue or Crossref (quoted)
-          if [ -n "$P_TITLE" ]; then
+          if [ -n "${P_TITLE:-}" ]; then
             echo "title: '$(esc "$P_TITLE")'" >> "$file_path"
-          elif [ -n "$C_TITLE" ]; then
+          elif [ -n "${C_TITLE:-}" ]; then
             echo "title: '$(esc "$C_TITLE")'" >> "$file_path"
           fi
 
-          # Authors from issue or Crossref
-          if [ -n "$P_AUTHORS" ]; then
-            authors_list=$(echo "$P_AUTHORS" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^ +| +$/, "", $i); gsub(/"/, "\\\"", $i); printf "%s\"%s\"", (i>1?", ":""), $i}}')
-            echo "authors: [${authors_list}]" >> "$file_path"
-          elif [ -n "$C_AUTHORS_YAML" ]; then
+          if [ -n "${P_AUTHORS:-}" ]; then
+            authors_list=""
+            IFS=',' read -r -a ARR <<< "$P_AUTHORS"
+            for e in "${ARR[@]}"; do
+              name=$(printf "%s" "$e" | sed 's/^ *//; s/ *$//; s/"/\\"/g')
+              [ -z "$name" ] && continue
+              if [ -n "$authors_list" ]; then authors_list="$authors_list, "; fi
+              authors_list="$authors_list\"$name\""
+            done
+            [ -n "$authors_list" ] && echo "authors: [$authors_list]" >> "$file_path"
+          elif [ -n "${C_AUTHORS_YAML:-}" ]; then
             echo "authors: $C_AUTHORS_YAML" >> "$file_path"
           fi
 
-          # Venue from issue or Crossref (quoted)
-          if [ -n "$P_VENUE" ]; then
+          if [ -n "${P_VENUE:-}" ]; then
             echo "venue: '$(esc "$P_VENUE")'" >> "$file_path"
-          elif [ -n "$C_VENUE" ]; then
+          elif [ -n "${C_VENUE:-}" ]; then
             echo "venue: '$(esc "$C_VENUE")'" >> "$file_path"
           fi
 
-          # Year from issue or Crossref (numeric only)
-          if echo "$P_YEAR" | grep -Eq '^[0-9]{4}$'; then
+          if [ -n "${P_YEAR:-}" ] && echo "$P_YEAR" | grep -Eq '^[0-9]{4}$'; then
             echo "year: $P_YEAR" >> "$file_path"
-          elif echo "$C_YEAR" | grep -Eq '^[0-9]{4}$'; then
+          elif [ -n "${C_YEAR:-}" ] && echo "$C_YEAR" | grep -Eq '^[0-9]{4}$'; then
             echo "year: $C_YEAR" >> "$file_path"
           fi
 
-          # URL from issue or Crossref (quoted)
-          if [ -n "$P_URL" ]; then
+          if [ -n "${P_URL:-}" ]; then
             echo "url: '$(esc "$P_URL")'" >> "$file_path"
-          elif [ -n "$C_URL" ]; then
+          elif [ -n "${C_URL:-}" ]; then
             echo "url: '$(esc "$C_URL")'" >> "$file_path"
           fi
 
