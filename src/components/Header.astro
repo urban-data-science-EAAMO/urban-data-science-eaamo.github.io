@@ -151,6 +151,19 @@ const { activeNav } = Astro.props;
 <script>
   // Mobile menu functionality
   document.addEventListener('astro:page-load', () => {
+    // Update CSS variable for header height to keep content below it
+    const updateHeaderHeight = () => {
+      const header = document.getElementById('main-header');
+      if (!header) return;
+      const measured = Math.ceil(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--header-height', `${measured}px`);
+    };
+
+    // Initial set
+    updateHeaderHeight();
+
+    // Update on resize
+    window.addEventListener('resize', updateHeaderHeight);
     const hamburgerBtn = document.querySelector('.hamburger-menu');
     const menuItems = document.querySelector('#menu-items');
     const menuLinks = menuItems?.querySelectorAll('a, button');
