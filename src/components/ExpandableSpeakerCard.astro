@@ -64,13 +64,13 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
     
     if (!abstractWrapper || !abstract) return;
 
-    // Measure the full height
-    const fullHeight = abstract.scrollHeight;
+    // Measure the full height with extra buffer to ensure no cutoff
+    const fullHeight = abstract.scrollHeight + 30; // Add 30px buffer
     const lineHeight = parseInt(getComputedStyle(abstract).lineHeight);
     const maxHeight = lineHeight * 3;
     
     // Check if abstract is overflowing
-    const isOverflowing = fullHeight > maxHeight;
+    const isOverflowing = abstract.scrollHeight > maxHeight;
 
     if (!isOverflowing) {
       // No overflow, no expand needed
