@@ -1,0 +1,126 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'speakers'>;
+  displayTags: string[];
+}
+
+const { entry, displayTags } = Astro.props;
+const cardId = `card-${entry.id.replace(/\//g, '-')}`;
+---
+
+<article class="talk-card" data-card-id={cardId}>
+  <div class="talk-date">
+    {entry.data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+  </div>
+  <h3 class="talk-title">
+    {entry.data.talkTitle}
+    <svg 
+      class="expand-icon" 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      width="20" 
+      height="20"
+      style="display: none;"
+    >
+      <path d="M7 10l5 5 5-5z" fill="currentColor"/>
+    </svg>
+  </h3>
+  <div class="talk-meta">
+    <span class="talk-speaker">{entry.data.name}</span>
+    {entry.data.affiliation && entry.data.affiliation.toLowerCase() !== 'guest speaker' && <span class="talk-divider">·</span>}
+    {entry.data.affiliation && entry.data.affiliation.toLowerCase() !== 'guest speaker' && <span class="talk-affiliation">{entry.data.affiliation}</span>}
+  </div>
+  {(displayTags && displayTags.length > 0) && (
+    <div class="talk-tags">
+      {displayTags.map((t: string) => (
+        <span class="tag-pill" data-tag={t.toLowerCase()}>{t}</span>
+      ))}
+    </div>
+  )}
+  {entry.data.abstract && (
+    <div class="talk-abstract-wrapper">
+      <p class="talk-abstract">{entry.data.abstract}</p>
+    </div>
+  )}
+  <div class="talk-links">
+    {entry.data.website && (<a class="talk-link" href={entry.data.website} target="_blank" rel="noopener">Website</a>)}
+    {entry.data.slidesUrl && (<a class="talk-link" href={entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
+    {entry.data.recordingUrl && (<a class="talk-link" href={entry.data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
+  </div>
+</article>
+
+<script define:vars={{ cardId }}>
+  // This script runs once per component instance
+  document.addEventListener('DOMContentLoaded', () => {
+    const card = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!card) return;
+
+    const abstractWrapper = card.querySelector('.talk-abstract-wrapper');
+    const abstract = card.querySelector('.talk-abstract');
+    const icon = card.querySelector('.expand-icon');
+    const links = card.querySelector('.talk-links');
+    
+    if (!abstractWrapper || !abstract) return;
+
+    // Measure the full height
+    const fullHeight = abstract.scrollHeight;
+    const lineHeight = parseInt(getComputedStyle(abstract).lineHeight);
+    const maxHeight = lineHeight * 3;
+    
+    // Check if abstract is overflowing
+    const isOverflowing = fullHeight > maxHeight;
+
+    if (!isOverflowing) {
+      // No overflow, no expand needed
+      return;
+    }
+
+    // Show the expand icon and make card expandable
+    if (icon) icon.style.display = 'block';
+    card.classList.add('expandable');
+    
+    let isExpanded = false;
+
+    // Apply initial collapsed state
+    abstract.classList.add('line-clamp');
+    abstractWrapper.style.maxHeight = `${maxHeight}px`;
+    abstractWrapper.style.overflow = 'hidden';
+
+    // Handle card click
+    const handleClick = (e) => {
+      // Don't toggle if clicking on a link
+      if (e.target.closest('.talk-links a')) {
+        return;
+      }
+
+      isExpanded = !isExpanded;
+
+      if (isExpanded) {
+        card.classList.add('expanded');
+        abstract.classList.remove('line-clamp');
+        abstractWrapper.style.maxHeight = `${fullHeight}px`;
+        if (icon) {
+          icon.style.transform = 'rotate(180deg)';
+        }
+      } else {
+        card.classList.remove('expanded');
+        abstract.classList.add('line-clamp');
+        abstractWrapper.style.maxHeight = `${maxHeight}px`;
+        if (icon) {
+          icon.style.transform = 'rotate(0deg)';
+        }
+      }
+    };
+
+    card.addEventListener('click', handleClick);
+
+    // Prevent link clicks from bubbling
+    if (links) {
+      links.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  });
+</script>

@@ -280,11 +280,7 @@
   #header-logo {
     transition: opacity 0.3s ease;
     z-index: 10;
-  }
-  
-  /* Hide header logo on home page initially */
-  .home-page #header-logo {
-    opacity: 0;
+    opacity: 1;
   }
   
   /* Hamburger Menu */
@@ -1012,12 +1008,7 @@ html[data-theme="dark"] .btn-secondary {
 .home-talks .talk-title {
   font-size: 1rem;
 }
-.home-talks .talk-abstract {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;  
-  overflow: hidden;
-}
+/* Abstract truncation is now handled dynamically via JavaScript in ExpandableSpeakerCard.astro */
 
 /* Home: add spacing above the All Talks button */
 .all-posts-btn-wrapper {
@@ -1122,6 +1113,24 @@ html[data-theme="dark"] .btn-secondary {
   background: rgba(var(--color-card), 0.25);
   border-radius: 12px;
   padding: 1rem 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.talk-card.expandable {
+  cursor: pointer;
+}
+
+.talk-card.expandable:hover {
+  background: rgba(var(--color-card), 0.4);
+  border-color: rgba(var(--color-accent), 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.talk-card.expanded {
+  background: rgba(var(--color-card), 0.45);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .talk-date {
@@ -1134,6 +1143,20 @@ html[data-theme="dark"] .btn-secondary {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0.25rem 0 0.35rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.expand-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.talk-card.expandable:hover .expand-icon {
+  opacity: 1;
 }
 
 .talk-meta {
@@ -1148,9 +1171,22 @@ html[data-theme="dark"] .btn-secondary {
   opacity: 0.6;
 }
 
+.talk-abstract-wrapper {
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .talk-abstract {
   margin-top: 0.5rem;
   line-height: 1.6;
+  transition: all 0.3s ease;
+}
+
+.talk-abstract.line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .talk-links {

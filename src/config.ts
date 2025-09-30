@@ -1,11 +1,11 @@
 import type { Site, SocialObjects } from "./types";
 
 export const PROFILE = {
-  name: "Urban Data Science & Equitable Cities",
-  title: "EAAMO Bridges Working Group",
-  profilePic: "/assets/profile_photo.png",
+  name: "EAAMO Urban Data Science & Equitable Cities",
+  title: "EAAMO Urban Data Science Bridges Working Group",
+  profilePic: "/favicon.png",
   bio: "A working group on urban data science and equity, hosting talks, studies, and workshops on computational analysis of urban data to explore and address inequities.",
-  location: "Global / Hybrid",
+  location: "Global / Hybrid, organized in NYC at Cornell Tech",
   links: {
     github: "https://github.com/urban-data-science-EAAMO/",
   },
@@ -44,7 +44,7 @@ export const LOGO_IMAGE = {
 export const SOCIALS: SocialObjects = [
   {
     name: "Github",
-    href: "https://github.com/eaamo-bridges",
+    href: "https://github.com/urban-data-science-EAAMO",
     linkTitle: ` ${SITE.title} on Github`,
     active: true,
   },

@@ -14,21 +14,16 @@ const { activeNav } = Astro.props;
   <div class="nav-container">
     <div class="top-nav-wrap">
       <div class="left-nav-section">
-        <a href="/" class="logo site-logo whitespace-nowrap" id="header-logo">
-          {
-            LOGO_IMAGE.enable ? (
-              <img
-                src={`/assets/${LOGO_IMAGE.svg ? "logo.svg" : "logo.png"}`}
-                alt={SITE.title}
-                width={LOGO_IMAGE.width}
-                height={LOGO_IMAGE.height}
-              />
-            ) : (
-              "EAAMO UDS Working Group"
-            ) 
-          }
+        <a href="https://eaamo.org" class="logo-link -m-1 " aria-label="EAAMO" target="_blank" rel="noopener noreferrer">
+          <img
+            src="/eaamo-logo.svg"
+            alt="EAAMO Logo"
+            class="eaamo-logo"
+          />
         </a>
-        
+        <a href="/" class="logo site-logo whitespace-nowrap" id="header-logo">
+          UDS Working Group
+        </a>
       </div>
       <nav id="nav-menu">
         <button
@@ -105,6 +100,34 @@ const { activeNav } = Astro.props;
     gap: 1rem;
   }
   
+  .logo-link {
+    display: flex;
+    align-items: center;
+    transition: opacity 0.2s ease;
+  }
+  
+  .logo-link:hover {
+    opacity: 0.8;
+  }
+  
+  .eaamo-logo {
+    height: 40px;
+    width: auto;
+    display: block;
+  }
+  
+  /* Semi-transparent white background ONLY on the logo container in dark mode */
+  html[data-theme="dark"] .logo-link {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+  }
+  
+  html[data-theme="dark"] .logo-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
   .brain-link {
     display: flex;
     align-items: center;
@@ -135,6 +158,10 @@ const { activeNav } = Astro.props;
   @media (max-width: 640px) {
     .left-nav-section {
       gap: 0.75rem;
+    }
+    
+    .eaamo-logo {
+      height: 32px;
     }
     
     .brain-link {
