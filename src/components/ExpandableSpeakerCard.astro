@@ -68,6 +68,7 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
     const fullHeight = abstract.scrollHeight + 30; // Add 30px buffer
     const lineHeight = parseInt(getComputedStyle(abstract).lineHeight);
     const maxHeight = lineHeight * 3;
+    const collapsedBuffer = 6; // small extra room so last line isn't clipped
     
     // Check if abstract is overflowing
     const isOverflowing = abstract.scrollHeight > maxHeight;
@@ -85,7 +86,7 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
 
     // Apply initial collapsed state
     abstract.classList.add('line-clamp');
-    abstractWrapper.style.maxHeight = `${maxHeight}px`;
+    abstractWrapper.style.maxHeight = `${maxHeight + collapsedBuffer}px`;
     abstractWrapper.style.overflow = 'hidden';
 
     // Handle card click
@@ -107,7 +108,7 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
       } else {
         card.classList.remove('expanded');
         abstract.classList.add('line-clamp');
-        abstractWrapper.style.maxHeight = `${maxHeight}px`;
+        abstractWrapper.style.maxHeight = `${maxHeight + collapsedBuffer}px`;
         if (icon) {
           icon.style.transform = 'rotate(0deg)';
         }
