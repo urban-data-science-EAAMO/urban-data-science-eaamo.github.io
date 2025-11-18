@@ -44,6 +44,16 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
       <p class="talk-abstract">{entry.data.abstract}</p>
     </div>
   )}
+  {entry.data.papers && entry.data.papers.length > 0 && (
+    <div class="talk-papers">
+      <div class="talk-papers-label">Prior Reading</div>
+      {entry.data.papers.map((paper) => (
+        <a class="talk-paper-button" href={paper.url} target="_blank" rel="noopener">
+          {paper.title}
+        </a>
+      ))}
+    </div>
+  )}
   <div class="talk-links">
     {entry.data.website && (<a class="talk-link" href={entry.data.website} target="_blank" rel="noopener">Website</a>)}
     {entry.data.slidesUrl && (<a class="talk-link" href={entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
@@ -91,8 +101,8 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
 
     // Handle card click
     const handleClick = (e) => {
-      // Don't toggle if clicking on a link
-      if (e.target.closest('.talk-links a')) {
+      // Don't toggle if clicking on a link or paper button
+      if (e.target.closest('.talk-links a') || e.target.closest('.talk-paper-button')) {
         return;
       }
 
@@ -121,6 +131,16 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
     if (links) {
       links.addEventListener('click', (e) => {
         e.stopPropagation();
+      });
+    }
+
+    // Prevent paper button clicks from bubbling
+    const papers = card.querySelector('.talk-papers');
+    if (papers) {
+      papers.addEventListener('click', (e) => {
+        if (e.target.closest('.talk-paper-button')) {
+          e.stopPropagation();
+        }
       });
     }
   });
