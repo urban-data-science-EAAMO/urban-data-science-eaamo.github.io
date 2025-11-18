@@ -128,6 +128,10 @@ const speakers = defineCollection({
       website: z.string().url().optional(),
       slidesUrl: z.string().url().optional(),
       recordingUrl: z.string().url().optional(),
+      papers: z.array(z.object({
+        title: z.string(),
+        url: z.string().url(),
+      })).max(3).optional(),
       tags: z.array(z.string()).default(["speaker"]),
       image: image().optional(),
     }),
