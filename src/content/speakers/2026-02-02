@@ -1,0 +1,12 @@
+---
+name: "Hanyong Xu"
+affiliation: "Massachusetts Institute of Technology"
+eventDate: 2025-12-01
+talkTitle: "Unveiling and Mitigating Disparities in the Ride-Hailing Industry"
+abstract: |
+  App-based ride-hailing platforms have transformed urban mobility, but their expansion has raised growing concerns about equity across neighborhoods. This talk brings together two projects to examine this topic with empirical evidence and methodological approaches. The first project examines how ride-hailing platforms and traditional street-hail taxis have served different communities over time. Using six years of New York City trip records, I analyze spatial-temporal differences in pricing and coverage between Transportation Network Companies (TNCs) and taxis. The results show that these differences are dynamic and became more pronounced during major disruptions such as the COVID-19 pandemic. Areas with higher shares of carless households experienced rapidly widening fare gaps, while minority-concentrated neighborhoods initially benefited from lower TNC fares but gradually lost relative coverage advantages during and after the pandemic. The second project shifts from measuring disparities to addressing them with predictive demand modeling. We show that common spatiotemporal prediction models prioritize overall accuracy while overlooking spatial and demographic imbalances in prediction errors. To address this, we introduce a Residual-Aware Attention block and an equality-enhancing loss function that explicitly account for spatial disparity during training. Applied to travel demand prediction in Chicago, this approach substantially reduces spatially clustered errors and improves fairness metrics with only modest losses in accuracy, supporting more equitable planning and policy decisions.
+papers:
+  - title: "Mitigating Spatial Disparity in Urban Prediction Using Residual-Aware Spatiotemporal Graph Neural Networks: A Chicago Case Study"
+    url: "https://dl.acm.org/doi/10.1145/3701716.3717368"
+tags: ["urban planning","ride sharing", "transportation", "equity"]
+---
