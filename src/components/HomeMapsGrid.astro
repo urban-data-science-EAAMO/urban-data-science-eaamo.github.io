@@ -1,0 +1,143 @@
+---
+type Props = {
+  maps: {
+    id: string;
+    date: string;
+    title: string;
+    source: string;
+    previewUrl: string;
+    analysisUrl?: string;
+    analysisLabel: string;
+  }[];
+};
+
+const { maps } = Astro.props as Props;
+const ITEMS_PER_PAGE = 12;
+const shouldPaginate = maps.length > ITEMS_PER_PAGE;
+const totalPages = Math.ceil(maps.length / ITEMS_PER_PAGE);
+---
+
+<div
+  class="home-maps-grid"
+  role="list"
+  aria-label="30 Days of Maps highlights"
+  data-home-maps-grid
+  data-items-per-page={ITEMS_PER_PAGE}
+>
+  {maps.map((map) => (
+    <article class="home-map-tile" role="listitem" data-home-map-item>
+      <div class="home-map-media">
+        <img class="home-map-media-el" src={map.previewUrl} alt={`Map preview: ${map.title}`} loading="lazy" />
+
+        <div class="home-map-overlay">
+          <div class="home-map-meta">
+            <p class="home-map-date">{map.date}</p>
+            <h4 class="home-map-title">{map.title}</h4>
+            <p class="home-map-source">Designer: {map.source}</p>
+          </div>
+
+          {map.analysisUrl ? (
+            <a
+              class="home-map-cta"
+              href={map.analysisUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`View analysis for ${map.title}`}
+            >
+              {map.analysisLabel}
+            </a>
+          ) : (
+            <span class="home-map-cta is-disabled" aria-disabled="true">
+              Analysis unavailable
+            </span>
+          )}
+        </div>
+      </div>
+    </article>
+  ))}
+</div>
+
+{
+  shouldPaginate && (
+    <div class="home-maps-pagination" data-home-maps-pagination>
+      <button type="button" class="home-maps-page-btn" data-home-maps-prev aria-label="Previous maps page">
+        Previous
+      </button>
+      <p class="home-maps-page-status" data-home-maps-status aria-live="polite">
+        Page 1 of {totalPages}
+      </p>
+      <button type="button" class="home-maps-page-btn" data-home-maps-next aria-label="Next maps page">
+        Next
+      </button>
+    </div>
+  )
+}
+
+<script>
+  const grid = document.querySelector("[data-home-maps-grid]");
+  const pagination = document.querySelector("[data-home-maps-pagination]");
+
+  if (grid) {
+    const seededShuffle = (items: HTMLElement[]): HTMLElement[] => {
+      const storageKey = "home_maps_seed_v1";
+      const existingSeed = window.localStorage.getItem(storageKey);
+      const seed = existingSeed ?? String(Math.floor(Math.random() * 2147483647));
+      if (!existingSeed) window.localStorage.setItem(storageKey, seed);
+
+      let t = Number(seed) || 1;
+      const rand = () => {
+        t += 0x6d2b79f5;
+        let x = t;
+        x = Math.imul(x ^ (x >>> 15), x | 1);
+        x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+      };
+
+      const next = [...items];
+      for (let i = next.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rand() * (i + 1));
+        [next[i], next[j]] = [next[j], next[i]];
+      }
+      return next;
+    };
+
+    const initialItems = Array.from(grid.querySelectorAll<HTMLElement>("[data-home-map-item]"));
+    const mapItems = seededShuffle(initialItems);
+    mapItems.forEach(item => grid.appendChild(item));
+    const itemsPerPage = Number(grid.getAttribute("data-items-per-page") ?? "12");
+    const totalPages = Math.max(1, Math.ceil(mapItems.length / itemsPerPage));
+    let currentPage = 1;
+
+    const prevBtn = pagination?.querySelector<HTMLButtonElement>("[data-home-maps-prev]");
+    const nextBtn = pagination?.querySelector<HTMLButtonElement>("[data-home-maps-next]");
+    const status = pagination?.querySelector<HTMLElement>("[data-home-maps-status]");
+
+    const update = () => {
+      mapItems.forEach((item, index) => {
+        const pageForItem = Math.floor(index / itemsPerPage) + 1;
+        const isVisible = pageForItem === currentPage;
+        item.style.display = isVisible ? "" : "none";
+      });
+
+      if (status) status.textContent = `Page ${currentPage} of ${totalPages}`;
+      if (prevBtn) prevBtn.disabled = currentPage === 1;
+      if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+    };
+
+    prevBtn?.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage -= 1;
+        update();
+      }
+    });
+
+    nextBtn?.addEventListener("click", () => {
+      if (currentPage < totalPages) {
+        currentPage += 1;
+        update();
+      }
+    });
+
+    update();
+  }
+</script>

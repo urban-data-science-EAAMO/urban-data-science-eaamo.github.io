@@ -126,6 +126,7 @@ const speakers = defineCollection({
       talkTitle: z.string(),
       abstract: z.string().optional(),
       website: z.string().url().optional(),
+      blogPostUrl: z.string().url().optional(),
       slidesUrl: z.string().url().optional(),
       recordingUrl: z.string().url().optional(),
       papers: z.array(z.object({
@@ -166,4 +167,19 @@ const publications = defineCollection({
   }),
 });
 
-export const collections = { blog, albums, photos, snips, playlists, projects, speakers, members, publications };
+const maps = defineCollection({
+  schema: ({ image }) =>
+    z.object({
+      id: z.string(),
+      date: z.date(),
+      title: z.string(),
+      source: z.string(),
+      sourceContributors: z.array(z.string()).default([]),
+      analysisUrl: z.string().url().optional(),
+      analysisLabel: z.string().default("View analysis"),
+      submissionType: z.enum(["image", "video", "html", "pdf", "none"]),
+      previewImage: image(),
+    }),
+});
+
+export const collections = { blog, albums, photos, snips, playlists, projects, speakers, members, publications, maps };

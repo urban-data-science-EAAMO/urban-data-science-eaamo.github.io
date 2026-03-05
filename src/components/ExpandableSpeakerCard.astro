@@ -56,6 +56,7 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
   )}
   <div class="talk-links">
     {entry.data.website && (<a class="talk-link" href={entry.data.website} target="_blank" rel="noopener">Website</a>)}
+    {entry.data.blogPostUrl && (<a class="talk-link" href={entry.data.blogPostUrl} target="_blank" rel="noopener">Blog post</a>)}
     {entry.data.slidesUrl && (<a class="talk-link" href={entry.data.slidesUrl} target="_blank" rel="noopener">Slides</a>)}
     {entry.data.recordingUrl && (<a class="talk-link" href={entry.data.recordingUrl} target="_blank" rel="noopener">Recording</a>)}
   </div>

@@ -1,10 +1,10 @@
 import type { Site, SocialObjects } from "./types";
 
 export const PROFILE = {
-  name: "EAAMO Urban Data Science & Equitable Cities",
-  title: "EAAMO Urban Data Science Bridges Working Group",
+  name: "EAAMO Urban Data & Equitable Cities",
+  title: "EAAMO Urban Data Bridges Working Group",
   profilePic: "/favicon.png",
-  bio: "A working group on urban data science and equity, hosting talks, studies, and workshops on computational analysis of urban data to explore and address inequities.",
+  bio: "A working group on Urban Data and equity, hosting talks, studies, and workshops on computational analysis of urban data to explore and address inequities.",
   location: "Global / Hybrid, organized in NYC at Cornell Tech",
   links: {
     github: "https://github.com/urban-data-science-EAAMO/",
@@ -20,8 +20,8 @@ export const SITE: Site = {
   website: "https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/",
   author: "EAAMO Bridges",
   profile: "https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/",
-  desc: "EAAMO Bridges Urban Data Science & Equitable Cities working group: biweekly talks, paper studies, and workshops on computational urban data analysis to explore and address inequities.",
-  title: "Urban Data Science & Equitable Cities | EAAMO Bridges",
+  desc: "EAAMO Bridges Urban Data & Equitable Cities working group: biweekly talks, paper studies, and workshops on computational urban data analysis to explore and address inequities.",
+  title: "Urban Data & Equitable Cities | EAAMO Bridges",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
   postPerIndex: 4,

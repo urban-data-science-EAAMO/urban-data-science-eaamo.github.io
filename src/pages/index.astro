@@ -8,6 +8,7 @@ import LinkButton from "@components/LinkButton.astro";
 import Hr from "@components/Hr.astro";
 import ProjectCard from "@components/ProjectCard";
 import ExpandableSpeakerCard from "@components/ExpandableSpeakerCard.astro";
+import HomeMapsGrid from "@components/HomeMapsGrid.astro";
 import Socials from "@components/Socials.astro";
 import { SITE, SOCIALS } from "@config";
 import { resolveDoi } from "@utils/doi";
@@ -77,6 +78,18 @@ const pubsResolved = await Promise.all(
 const readingItems: HomeReadingItem[] = pubsResolved
   .sort((a: HomeReadingItem, b: HomeReadingItem) => (b.year ?? 0) - (a.year ?? 0))
   .slice(0, 5);
+const mapEntries = await getCollection("maps");
+const homeMaps = mapEntries
+  .sort((a: CollectionEntry<"maps">, b: CollectionEntry<"maps">) => b.data.date.getTime() - a.data.date.getTime())
+  .map((entry: CollectionEntry<"maps">) => ({
+    id: entry.data.id,
+    date: entry.data.date.toISOString().slice(0, 10),
+    title: entry.data.title,
+    source: entry.data.source,
+    previewUrl: typeof entry.data.previewImage === "string" ? entry.data.previewImage : entry.data.previewImage.src,
+    analysisUrl: entry.data.analysisUrl,
+    analysisLabel: entry.data.analysisLabel || "View analysis",
+  }));
 
 const socialCount = SOCIALS.filter(social => social.active).length;
 ---
@@ -86,7 +99,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
   <main id="main-content" class="home-content px-0"> 
     <div class="left-col">
       <section id="hero">
-        <h1 class="site-logo text-3xl font-bold mb-4">Urban Data Science & Equitable Cities</h1>
+        <h1 class="site-logo text-3xl font-bold mb-4">Urban Data & Equitable Cities</h1>
         {
           // only display if at least one social link is enabled
           socialCount > 0 && false && (
@@ -108,8 +121,14 @@ const socialCount = SOCIALS.filter(social => social.active).length;
         </p>
         <div class="home-cta">
           <LinkButton className="btn-primary" href="/join/">Join Our Mailing List!</LinkButton>
-          <LinkButton className="btn-primary" href=""
-          <a class="btn-secondary inline-flex items-center gap-2 px-4 py-2 rounded-md border transition-all duration-200" href="https://bridges.eaamo.org/" target="_blank" rel="noopener noreferrer">EAAMO Bridges Website</a>
+          <a
+            class="btn-secondary inline-flex items-center gap-2 px-4 py-2 rounded-md border transition-all duration-200"
+            href="https://bridges.eaamo.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            EAAMO Bridges Website
+          </a>
         </div>
 
       </section>
@@ -239,6 +258,13 @@ const socialCount = SOCIALS.filter(social => social.active).length;
               </div>
             </div>
           </>
+        )}
+
+        {homeMaps.length > 0 && (
+          <section class="maps-section" aria-label="Maps">
+            <h3 class="subsection-heading mt-6">Maps</h3>
+            <HomeMapsGrid maps={homeMaps} />
+          </section>
         )}
 
         {readingItems.length > 0 && (
