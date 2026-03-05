@@ -4,3 +4,6 @@
 [submodule "sub/pendulating.github.io"]
 	path = sub/pendulating.github.io
 	url = git@github.com:pendulating/pendulating.github.io.git
+[submodule "30DoM-2025"]
+	path = 30DoM-2025
+	url = git@github.com:urban-data-science-EAAMO/30DoM-2025.git
