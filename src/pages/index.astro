@@ -1,21 +1,22 @@
 ---
-import { getCollection } from "astro:content";
+import { getCollection, getEntry } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import Layout from "@layouts/Layout.astro";
 import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import LinkButton from "@components/LinkButton.astro";
-import Hr from "@components/Hr.astro";
+import MemberCard from "@components/MemberCard.astro";
 import ProjectCard from "@components/ProjectCard";
 import ExpandableSpeakerCard from "@components/ExpandableSpeakerCard.astro";
 import HomeMapsGrid from "@components/HomeMapsGrid.astro";
-import Socials from "@components/Socials.astro";
-import { SITE, SOCIALS } from "@config";
-import { resolveDoi } from "@utils/doi";
+import { getReadingList } from "@utils/readingList";
+
+const intro = await getEntry("home", "intro");
+if (!intro) throw new Error("Missing src/content/home/intro.md");
+const { Content: IntroContent } = await intro.render();
 
 const projects = await getCollection("projects");
 const speakers = await getCollection("speakers");
-const sortedSpeakers = speakers.sort((a: CollectionEntry<'speakers'>, b: CollectionEntry<'speakers'>) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
 
 // Build small view models for homepage speaker cards, with derived tags
 type HomeSpeakerView = { entry: CollectionEntry<'speakers'>; displayTags: string[] };
@@ -42,7 +43,7 @@ const pastSpeakers = speakers
   .filter((entry: CollectionEntry<'speakers'>) => entry.data.eventDate < today)
   .sort((a: CollectionEntry<'speakers'>, b: CollectionEntry<'speakers'>) => b.data.eventDate.getTime() - a.data.eventDate.getTime()); // Sort descending for past
 
-const homeSpeakerViews: HomeSpeakerView[] = pastSpeakers.slice(0, 4).map((entry: CollectionEntry<'speakers'>) => {
+const homeSpeakerViews: HomeSpeakerView[] = pastSpeakers.slice(0, intro.data.recentTalksLimit).map((entry: CollectionEntry<'speakers'>) => {
   const baseTags: string[] = entry.data.tags ?? [];
   const isGuest: boolean = (entry.data.affiliation ?? '').toLowerCase() === 'guest speaker';
   const hasGuestTag: boolean = baseTags.some((t: string) => t.toLowerCase() === 'guest speaker');
@@ -52,32 +53,15 @@ const homeSpeakerViews: HomeSpeakerView[] = pastSpeakers.slice(0, 4).map((entry:
 
 // Sort projects by order field
 const sortedProjects = projects.sort((a: CollectionEntry<'projects'>, b: CollectionEntry<'projects'>) => 
-  (a.data.order || Infinity) - (b.data.order || Infinity)
+  (a.data.order ?? Infinity) - (b.data.order ?? Infinity)
 );
-
-//
 
 // Members collection
 const members = await getCollection("members");
-const sortedMembers = members.sort((a: CollectionEntry<'members'>, b: CollectionEntry<'members'>) => (a.data.order || 9999) - (b.data.order || 9999));
+const sortedMembers = members.sort((a: CollectionEntry<'members'>, b: CollectionEntry<'members'>) => (a.data.order ?? 9999) - (b.data.order ?? 9999));
 
-// Reading list (resolve DOIs; top 5)
-type HomeReadingItem = { title: string; url: string; year?: number; venue?: string };
-const pubs: CollectionEntry<"publications">[] = await getCollection("publications");
-const pubsResolved = await Promise.all(
-  pubs.map(async (e: CollectionEntry<"publications">) => {
-    const meta = await resolveDoi(e.data.doi);
-    return {
-      title: e.data.title ?? meta?.title ?? e.data.doi,
-      url: e.data.url ?? meta?.url ?? `https://doi.org/${e.data.doi}`,
-      year: e.data.year ?? meta?.year,
-      venue: e.data.venue ?? meta?.venue,
-    } as HomeReadingItem;
-  })
-);
-const readingItems: HomeReadingItem[] = pubsResolved
-  .sort((a: HomeReadingItem, b: HomeReadingItem) => (b.year ?? 0) - (a.year ?? 0))
-  .slice(0, 5);
+// Reading list is shared with the full archive.
+const readingItems = (await getReadingList()).slice(0, intro.data.readingLimit);
 const mapEntries = await getCollection("maps");
 const homeMaps = mapEntries
   .sort((a: CollectionEntry<"maps">, b: CollectionEntry<"maps">) => b.data.date.getTime() - a.data.date.getTime())
@@ -91,7 +75,6 @@ const homeMaps = mapEntries
     analysisLabel: entry.data.analysisLabel || "View analysis",
   }));
 
-const socialCount = SOCIALS.filter(social => social.active).length;
 ---
 
 <Layout pageType="home">
@@ -99,26 +82,8 @@ const socialCount = SOCIALS.filter(social => social.active).length;
   <main id="main-content" class="home-content px-0"> 
     <div class="left-col">
       <section id="hero">
-        <h1 class="site-logo text-3xl font-bold mb-4">Urban Data & Equitable Cities</h1>
-        {
-          // only display if at least one social link is enabled
-          socialCount > 0 && false && (
-            <div class="social-wrapper">
-              <div class="social-links"></div>
-              <Socials />
-            </div>
-          )
-        }
-        <p>
-          By 2050, the UN projects that 68% of the population will live in a city. With urban life shaping health and opportunity, using data to guide decisions and reduce inequality is critical. In this EAAMO Bridges working group, we host speakers, study papers, and workshop late-stage work on computational analysis of urban data, emphasizing topics that explore and address inequities in urban life.
-          <br><br>
-
-        </p>
-        <p>
-          We meet every other week on <b>Fridays 11am-12pm EST</b> for a presentation followed by sustained discussion. Join our mailing list or contact one of the organizers for Zoom information. We would be happy to see you at our next meeting!
-          <br><br>
-
-        </p>
+        <h1 class="site-logo text-3xl font-bold mb-4">{intro.data.title}</h1>
+        <div class="home-intro"><IntroContent /></div>
         <div class="home-cta">
           <LinkButton className="btn-primary" href="/join/">Join Our Mailing List!</LinkButton>
           <a
@@ -145,7 +110,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
       )}
 
       <section id="speakers">
-        <h3 class="subsection-heading">Recent Speakers & Activites</h3>
+        <h3 class="subsection-heading">Recent Speakers & Activities</h3>
         <div class="talks-list home-talks">
           {homeSpeakerViews.map((view: HomeSpeakerView) => (
             <ExpandableSpeakerCard entry={view.entry} displayTags={view.displayTags} />
@@ -196,63 +161,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
               <div class="projects-grid-container" id="members-grid-container">
                 <div class="projects-grid members-grid">
                   {sortedMembers.map((member: CollectionEntry<'members'>) => (
-                    member.data.website ? (
-                      <a class="member-card" href={member.data.website} target="_blank" rel="noopener noreferrer">
-                        <div class="member-photo">
-                          {member.data.image ? (
-                            typeof member.data.image === 'string' ? (
-                              <img 
-                                src={member.data.image} 
-                                alt={member.data.name} 
-                                loading="lazy" 
-                              />
-                            ) : (
-                              <img 
-                                src={member.data.image.src} 
-                                alt={member.data.name} 
-                                width={member.data.image.width}
-                                height={member.data.image.height}
-                                loading="lazy" 
-                              />
-                            )
-                          ) : (
-                            <div class="member-photo-placeholder"></div>
-                          )}
-                        </div>
-                        <div class="member-info">
-                          <div class="member-name">{member.data.name}</div>
-                          {member.data.affiliation && <div class="member-affiliation">{member.data.affiliation}</div>}
-                        </div>
-                      </a>
-                    ) : (
-                      <div class="member-card">
-                        <div class="member-photo">
-                          {member.data.image ? (
-                            typeof member.data.image === 'string' ? (
-                              <img 
-                                src={member.data.image} 
-                                alt={member.data.name} 
-                                loading="lazy" 
-                              />
-                            ) : (
-                              <img 
-                                src={member.data.image.src} 
-                                alt={member.data.name} 
-                                width={member.data.image.width}
-                                height={member.data.image.height}
-                                loading="lazy" 
-                              />
-                            )
-                          ) : (
-                            <div class="member-photo-placeholder"></div>
-                          )}
-                        </div>
-                        <div class="member-info">
-                          <div class="member-name">{member.data.name}</div>
-                          {member.data.affiliation && <div class="member-affiliation">{member.data.affiliation}</div>}
-                        </div>
-                      </div>
-                    )
+                    <MemberCard entry={member} />
                   ))}
                 </div>
               </div>
@@ -271,7 +180,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
           <>
             <h3 class="subsection-heading mt-6">Reading List</h3>
             <ul class="reading-list">
-              {readingItems.map((p: HomeReadingItem) => (
+              {readingItems.map((p) => (
                 <li class="reading-item">
                   <div class="reading-title">
                     {p.title}
@@ -300,88 +209,6 @@ const socialCount = SOCIALS.filter(social => social.active).length;
   <Footer />
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const heroLogo = document.getElementById('hero-logo');
-      const headerLogo = document.getElementById('header-logo');
-      const logoLink = document.getElementById('logo-link');
-      
-      if (heroLogo && headerLogo && logoLink) {
-        // Store original positions after DOM is fully loaded
-        const heroLogoRect = heroLogo.getBoundingClientRect();
-        const headerLogoRect = headerLogo.getBoundingClientRect();
-        
-        // Save original positions
-        const heroTop = heroLogoRect.top;
-        const heroLeft = heroLogoRect.left;
-        const headerTop = headerLogoRect.top;
-        const headerLeft = headerLogoRect.left;
-        
-        // Initial state
-        if (window.scrollY === 0) {
-          headerLogo.style.opacity = '0';
-          heroLogo.style.opacity = '1';
-        } else {
-          headerLogo.style.opacity = '1';
-          heroLogo.style.opacity = '0';
-        }
-        
-        // Smooth scroll handling
-        window.addEventListener('scroll', () => {
-          const scrollY = window.scrollY;
-          
-          // Define the transition zone 
-          const transitionStart = 0;
-          const transitionEnd = 100; // shorter transition zone
-          
-          if (scrollY <= transitionStart) {
-            // Before transition: hero logo visible, in original position
-            heroLogo.style.position = 'relative';
-            heroLogo.style.top = '0';
-            heroLogo.style.left = '0';
-            heroLogo.style.transform = 'none';
-            heroLogo.style.opacity = '1';
-            headerLogo.style.opacity = '0';
-          } else if (scrollY > transitionStart && scrollY < transitionEnd) {
-            // During transition: smoothly animate position and opacity
-            const progress = (scrollY - transitionStart) / (transitionEnd - transitionStart);
-            
-            // Position heroLogo absolutely during transition
-            heroLogo.style.position = 'fixed';
-            heroLogo.style.top = `${headerTop}px`;
-            
-            // Calculate the left position difference and interpolate
-            const leftDiff = headerLeft - heroLeft;
-            heroLogo.style.left = `${heroLeft + (leftDiff * progress)}px`;
-            
-            // Scale down during transition
-            const initialScale = 1;
-            const targetScale = 0.8;
-            heroLogo.style.transform = `scale(${initialScale - ((initialScale - targetScale) * progress)})`;
-            
-            // Crossfade between logos
-            heroLogo.style.opacity = (1 - progress).toString();
-            headerLogo.style.opacity = progress.toString();
-          } else {
-            // After transition: header logo fully visible
-            heroLogo.style.opacity = '0';
-            headerLogo.style.opacity = '1';
-          }
-        });
-        
-        // Recalculate on resize
-        window.addEventListener('resize', () => {
-          const newHeroRect = heroLogo.getBoundingClientRect();
-          const newHeaderRect = headerLogo.getBoundingClientRect();
-          
-          // Update position values
-          const heroTop = newHeroRect.top;
-          const heroLeft = newHeroRect.left;
-          const headerTop = newHeaderRect.top;
-          const headerLeft = newHeaderRect.left;
-        });
-      }
-    });
-
     // Scroll indicator functionality
     const initScrollIndicators = () => {
       const gridContainers = document.querySelectorAll('.projects-grid-container');
@@ -432,16 +259,9 @@ const socialCount = SOCIALS.filter(social => social.active).length;
     // Initialize scroll indicators
     initScrollIndicators();
 
-    // Debug helper function
-    (window as any).debugReact = function(message: string) {
-      console.log(`[Debug] ${message}`);
-      const debugElement = document.getElementById('react-debug');
-      if (debugElement) {
-        const now = new Date();
-        const timeStr = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
-        debugElement.innerHTML += `<div>${timeStr} - ${message}</div>`;
-      }
-    };
   </script>
 
+  <style>
+    .home-intro :global(p) { margin-bottom: 2rem; }
+  </style>
 </Layout>

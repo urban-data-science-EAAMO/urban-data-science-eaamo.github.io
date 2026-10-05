@@ -129,6 +129,7 @@ const speakers = defineCollection({
       blogPostUrl: z.string().url().optional(),
       slidesUrl: z.string().url().optional(),
       recordingUrl: z.string().url().optional(),
+      zoomLink: z.string().url().optional(),
       papers: z.array(z.object({
         title: z.string(),
         url: z.string().url(),
@@ -182,4 +183,12 @@ const maps = defineCollection({
     }),
 });
 
-export const collections = { blog, albums, photos, snips, playlists, projects, speakers, members, publications, maps };
+const home = defineCollection({
+  schema: z.object({
+    title: z.string(),
+    recentTalksLimit: z.number().int().positive().default(4),
+    readingLimit: z.number().int().positive().default(5),
+  }),
+});
+
+export const collections = { home, blog, albums, photos, snips, playlists, projects, speakers, members, publications, maps };

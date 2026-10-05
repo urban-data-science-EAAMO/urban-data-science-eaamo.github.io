@@ -17,7 +17,7 @@ export const PROFILE = {
 };
 
 export const SITE: Site = {
-  website: "https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/",
+  website: "https://urban-data-science-eaamo.github.io/",
   author: "EAAMO Bridges",
   profile: "https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/",
   desc: "EAAMO Bridges Urban Data & Equitable Cities working group: biweekly talks, paper studies, and workshops on computational urban data analysis to explore and address inequities.",

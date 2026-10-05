@@ -1,5 +1,5 @@
 {
-  "name": "~-repos-blog-2024",
+  "name": "urban-data-science-eaamo",
   "version": "4.4.0",
   "scripts": {
     "dev": "astro dev",
@@ -15,7 +15,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "generate:30dom-previews": "node scripts/generate-30dom-previews.mjs"
+    "generate:30dom-previews": "node scripts/generate-30dom-previews.mjs",
+    "inspect": "pnpm run build && python3 scripts/preview.py"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -61,5 +62,9 @@
     "react-dom": "^18.3.1",
     "ts-jest": "^29.2.6",
     "typescript-eslint": "^8.26.0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22 <25"
   }
 }

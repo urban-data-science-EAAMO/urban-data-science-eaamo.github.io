@@ -1,0 +1,41 @@
+---
+import type { CollectionEntry } from "astro:content";
+interface Props {
+  entry: CollectionEntry<"members">;
+}
+const { entry } = Astro.props;
+const member = entry.data;
+const Tag = member.website ? "a" : "div";
+const image = member.image;
+---
+
+<Tag
+  class="member-card"
+  href={member.website}
+  target={member.website ? "_blank" : undefined}
+  rel={member.website ? "noopener noreferrer" : undefined}
+>
+  <div class="member-photo">
+    {
+      image ? (
+        <img
+          src={typeof image === "string" ? image : image.src}
+          alt={member.name}
+          loading="lazy"
+          width={typeof image === "string" ? undefined : image.width}
+          height={typeof image === "string" ? undefined : image.height}
+        />
+      ) : (
+        <div class="member-photo-placeholder" />
+      )
+    }
+  </div>
+  <div class="member-info">
+    <div class="member-name">{member.name}</div>
+    {
+      member.affiliation && (
+        <div class="member-affiliation">{member.affiliation}</div>
+      )
+    }
+  </div>
+</Tag>
