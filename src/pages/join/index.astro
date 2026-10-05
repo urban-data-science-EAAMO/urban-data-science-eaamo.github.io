@@ -1,40 +1,6 @@
 ---
 import Layout from "@layouts/Layout.astro";
-const successParam = Astro.url.searchParams.get('success');
-const signupHtml = `
-<form action="https://www.list.cornell.edu/subscribe/subscribe.tml" method="POST">
-        <table border=0 cellspacing=0 cellpadding=3>
-            <tr>
-                <td align="right">
-                    <font size=2>Email address: </font>
-                </td>
-                <td>
-                    <input type="text" name="email" value="" SIZE=10>
-                </td>
-                <td>
-                <input type="submit" class="btn" value="subscribe" title="subscribe" alt="subscribe"  name="subscribe" align="left">
-                </td>
-            </tr>
-        <tr>
-            <td align="right">
-                <font size=2>Your name: </font>
-            </td>
-            <td>
-                <INPUT TYPE="text" NAME="name" VALUE="" SIZE=10 MAXLENGTH=100>
-            </td>
-        </tr>
-        </table>
-    <input type="hidden" name="list" value="urban-data-science-rg-l"><input type="hidden" name="lists" value="urban-data-science-rg-l" >
-<input type="hidden" name="demographics" value="" >
-<input type="hidden" name="name_required" value="T" >
-<input type="hidden" name="pw_required" value="" >
-<input type="hidden" name="confirm" value="one" >
-<input type="hidden" name="showconfirm" value="T" >
-<input type="hidden" name="url" value="" >
-<input type="hidden" name="appendsubinfotourl" value="" >
-<input type="hidden" name="secx" value="de8c4a09" >
-
-</form>`;
+import LinkButton from "@components/LinkButton.astro";
 ---
 
 <Layout title="Join Us | Urban Data & Equitable Cities" pageType="other">
@@ -43,24 +9,14 @@ const signupHtml = `
       <div class="join-header">
         <h1 class="join-title">Urban Data & Equitable Cities</h1>
         <p class="join-subtitle">Subscribe to our mailing list to receive updates on talks, activities, and collaborations.</p>
+        <p class="join-subtitle">You will be asked to confirm your subscription by email. An admin will then manually approve your subscription. Once approved, you will receive a link to join our Slack channel.</p>
       </div>
 
-      {successParam === '1' ? (
-        <div class="join-success" role="status" aria-live="polite">
-          <h2 class="join-success-title">Thanks for subscribing!</h2>
-          <p class="join-success-body">Complete your subscription through the link on your email.</p>
-          <div class="join-links">
-            <a class="underline" href="/" rel="noopener">Return home</a>
-          </div>
-        </div>
-      ) : (
-      <div class="join-form join-form-legacy">
-        <Fragment set:html={signupHtml} />
+      <div class="join-form">
+        <LinkButton className="btn-primary" href="https://lists.cornell.edu/URBAN-DATA-SCIENCE-RG-L/subscribe/">Join Our Mailing List!</LinkButton>
       </div>
-      )}
 
       <div class="join-links">
-        <p class="join-subtitle">Complete your subscription through the link on your email.</p>
         <a class="underline" href="/">Back</a>
         <span aria-hidden>·</span>
         <a class="underline" href="https://bridges.eaamo.org/" target="_blank" rel="noopener">EAAMO Bridges</a>
@@ -68,5 +24,3 @@ const signupHtml = `
     </section>
   </main>
 </Layout>
-
-
