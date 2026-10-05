@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+import tsconfig from "./tsconfig.json";
 import { defineConfig, sharpImageService } from "astro/config";
 import tailwind from "@astrojs/tailwind";
 import react from "@astrojs/react";
@@ -39,6 +41,15 @@ export default defineConfig({
     },
   },
   vite: {
+    resolve: {
+      // Astro 4 needs explicit Vite aliases when tsconfig omits baseUrl.
+      alias: Object.fromEntries(
+        Object.entries(tsconfig.compilerOptions.paths).map(([name, paths]) => [
+          name.replace(/\/\*$/, ""),
+          fileURLToPath(new URL(paths[0].replace(/\/\*$/, ""), import.meta.url)),
+        ])
+      ),
+    },
     optimizeDeps: {
       exclude: ["@resvg/resvg-js"],
     },
