@@ -1,6 +1,6 @@
 ---
 # Edit the heading here and the introduction below. Markdown supports **bold** and [links](https://example.com).
-title: "Urban Data & Equitable Cities"
+title: "Urban Data"
 # Number of recent talks and papers displayed on the homepage.
 recentTalksLimit: 4
 readingLimit: 5

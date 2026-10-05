@@ -1,7 +1,7 @@
 import type { Site, SocialObjects } from "./types";
 
 export const PROFILE = {
-  name: "EAAMO Urban Data & Equitable Cities",
+  name: "EAAMO Urban Data",
   title: "Urban Data Working Group",
   profilePic: "/favicon.png",
   bio: "A working group on Urban Data and equity, hosting talks, studies, and workshops on computational analysis of urban data to explore and address inequities.",
@@ -20,8 +20,8 @@ export const SITE: Site = {
   website: "https://urban-data-science-eaamo.github.io/",
   author: "EAAMO Bridges",
   profile: "https://bridges.eaamo.org/working_groups/urban-ds-equitable-cities/",
-  desc: "EAAMO Bridges Urban Data & Equitable Cities working group: biweekly talks, paper studies, and workshops on computational urban data analysis to explore and address inequities.",
-  title: "Urban Data & Equitable Cities | EAAMO Bridges",
+  desc: "EAAMO Bridges Urban Data working group: biweekly talks, paper studies, and workshops on computational urban data analysis to explore and address inequities.",
+  title: "Urban Data",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
   postPerIndex: 4,

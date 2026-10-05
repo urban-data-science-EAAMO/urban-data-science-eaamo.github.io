@@ -1,4 +1,4 @@
-# Urban Data & Equitable Cities
+# Urban Data
 
 An Astro website that builds to static HTML for GitHub Pages. Content lives in Markdown files; the original two-column layout, cards, maps, and styling are retained.
 
