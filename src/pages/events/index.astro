@@ -11,7 +11,7 @@ const sortedSpeakers: CollectionEntry<'speakers'>[] = speakers.sort(
 // Group by year for anchors
 const groupedByYear: Record<number, CollectionEntry<'speakers'>[]> = sortedSpeakers.reduce(
   (acc: Record<number, CollectionEntry<'speakers'>[]>, entry: CollectionEntry<'speakers'>) => {
-    const year = entry.data.eventDate.getFullYear();
+    const year = entry.data.eventDate.getUTCFullYear();
     (acc[year] ||= []).push(entry);
     return acc;
   },
@@ -99,7 +99,7 @@ const allTags: string[] = Array.from(
           {viewsByYear[year].map((view) => (
             <article class="talk-card" data-tags={view.dataTagsAttr} data-keywords={view.keywords}>
               <div class="talk-date">
-                {view.entry.data.eventDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                {view.entry.data.eventDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
               </div>
               <h3 class="talk-title">{view.entry.data.talkTitle}</h3>
               <div class="talk-meta">

@@ -1,96 +1,121 @@
-[![Deploy to GitHub Pages](https://github.com/mattwfranchi/mattwfranchi.github.io/actions/workflows/deploy.yml/badge.svg)](https://github.com/mattwfranchi/mattwfranchi.github.io/actions/workflows/deploy.yml)
+# Urban Data & Equitable Cities
 
-## Contributing: Add Members and Reading List Items
+An Astro website that builds to static HTML for GitHub Pages. Content lives in Markdown files; the original two-column layout, cards, maps, and styling are retained.
 
-This site supports two easy contribution paths using GitHub Issues. When you open an issue with the appropriate template, a GitHub Action will turn it into a content file and open a pull request for review.
+## Where to edit
 
-**add member / paper issue->pr->content workflow is not currently working. please use the manual route specifed below.**
+| To change… | Edit |
+| --- | --- |
+| Homepage heading and introductory text | `src/content/home/intro.md` |
+| Number of recent talks/papers on the homepage | `recentTalksLimit` / `readingLimit` in that same file |
+| Speakers and activities | `src/content/speakers/*.md` |
+| Reading list | `src/content/publications/*.md` |
+| Members / organizer cards | `src/content/members/*.md` |
+| Mailing-list link and subscription guidance | `src/pages/join/index.astro` |
+| Navigation | `src/components/Header.astro` |
+| Site title and description for search/social sharing | `src/config.ts` |
+| Appearance | `src/styles/base.css` |
 
-### Add a Member Card
+The block between `---` lines at the top of a content file is YAML. Keep its indentation; quote text containing colons. For the intro, everything below the second `---` is Markdown: **bold**, *italic*, and `[link text](https://example.com)` work.
 
-1. Open a new issue and choose “Member: Add person”.
-2. Fill in the form fields:
-   - Full name (required)
-   - Role (optional)
-   - Affiliation (optional)
-   - Image URL (optional; you can also attach an image via PR later)
-   - Website (optional)
-   - Order (optional; lower numbers show earlier)
-   - Tags (optional)
-3. Submit the issue.
+## Preview locally
 
-What happens next:
-- The workflow `.github/workflows/issue-add-member.yml` parses the issue.
-- It creates a new file at `src/content/members/<slug>.md` and, if the image is a URL, downloads it to `src/assets/members/`.
-- It opens a PR titled `[Member] Add: <Name>` for CODEOWNERS to review.
-- Duplicate slugs are detected and the workflow will comment and stop.
-
-Manual (advanced):
-- You can also add a file directly under `src/content/members/your-name.md` with this frontmatter:
-
-```yaml
----
-name: "Jane Doe"
-role: "Organizer"
-affiliation: "University / Org"
-image: "../../assets/members/jane-doe.jpg" # or full URL
-website: "https://example.com"
-order: 100
-tags: ["member"]
----
-```
-
-### Add an Item to the Reading List
-
-Preferred path is DOI-first via issue:
-1. Open a new issue and choose “Reading List: Add paper”.
-2. Provide the DOI (required) and any optional overrides (title, authors, venue, year, URL).
-3. Submit the issue.
-
-What happens next:
-- The workflow `.github/workflows/issue-to-content.yml` resolves the DOI via Crossref.
-- It will comment and fail if the DOI can’t be resolved.
-- It creates a new file at `src/content/publications/<doi-slug>.md` with metadata (from your inputs or Crossref).
-- It opens a PR titled `Add reading list entry: #<issue-number>` for CODEOWNERS to review.
-- Duplicate DOIs are detected; the workflow will comment and stop.
-
-Manual (advanced):
-- You can add a file directly under `src/content/publications/*.md` with at least a DOI:
-
-```yaml
----
-doi: 10.1145/3640792.3675740
-# Optional overrides
-title: "Paper Title"
-authors: ["First Last", "Second Last"]
-venue: "Conference / Journal"
-year: 2024
-url: "https://doi.org/10.1145/3640792.3675740"
-tags: ["publication"]
----
-```
-
-Rendering details:
-- The Reading List page is at `/publications` and DOIs are resolved at build-time.
-- A compact Reading List panel appears on the home page’s right column.
-
-### Review and Merge
-
-All auto-generated PRs require review from CODEOWNERS:
-
-```
-.github/CODEOWNERS
-* @mattwfranchi @gsagostini
-```
-
-### Local Development
+Install Node 22 and pnpm 9.15.9 once (with Node installed, `corepack enable` and `corepack prepare pnpm@9.15.9 --activate`). Then:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-### Notes
-- Image optimization: member photos can be external URLs or committed to `src/assets/members/`.
+Open `http://localhost:4321`. Saved edits automatically refresh the preview.
 
-- Security: workflows are gated to run only on this repository and include duplicate checks.
+To inspect the actual generated HTML:
+
+```bash
+pnpm build
+python3 scripts/preview.py
+```
+
+Or use `pnpm inspect` to build and start that server together. On a remote machine, forward port 4321 in VS Code's Ports panel. The preview server listens only on localhost.
+
+The generated homepage is `dist/index.html`; other pages have their own `index.html` directories. Serve `dist/` over HTTP to load the site's absolute asset paths and interactive cards correctly. After building, previewing only needs Python, not Node. You can also run `pnpm preview`.
+
+## Speakers and activities
+
+Copy an existing file into `src/content/speakers/`, preferably named `YYYY-MM-DD.md`, and edit its frontmatter:
+
+```yaml
+---
+name: "Speaker name or activity host"
+affiliation: "University or organization"
+eventDate: 2026-11-02
+talkTitle: "Talk or activity title"
+abstract: |
+  Describe the talk here. Multiple lines are fine.
+tags: ["urban planning", "equity"]
+website: "https://example.com/"
+# Optional: zoomLink, slidesUrl, recordingUrl, blogPostUrl
+papers:
+  - title: "Related paper"
+    url: "https://doi.org/10.1234/example"
+---
+```
+
+Required fields are `name`, `eventDate`, and `talkTitle`. Delete optional fields you do not need. Up to three related papers are supported. Activities use the same cards as talks. The homepage separates upcoming and past events at build time and shows the most recent past events first. Rebuild after an event passes to update its placement; the All Talks page lists every event. Edit `abstract:` for the card text (the Markdown body below the frontmatter is not displayed on these cards).
+
+## Reading list
+
+Copy a file into `src/content/publications/` and edit:
+
+```yaml
+---
+doi: "10.1234/example"
+title: "Paper title"
+authors: ["First Author", "Second Author"]
+year: 2026
+venue: "Journal or conference"
+tags: ["publication"]
+# Optional URL override; otherwise links to https://doi.org/<doi>.
+# url: "https://example.com/paper"
+---
+```
+
+Only `doi` is required, but provide the title/year/venue/authors to display useful details. Build-time metadata fetching has been removed: the values you edit are the values displayed, and builds work without Crossref. The homepage, `/publications/`, and the older `/reading/` URL all use these files. Papers sort by newest year first; optional `order` breaks ties (larger values first).
+
+## Members
+
+Copy a file into `src/content/members/` and edit:
+
+```yaml
+---
+name: "Person name"
+affiliation: "University or organization"
+website: "https://example.com/"
+image: "https://example.com/photo.jpg"
+order: 2
+tags: ["organizer"]
+---
+```
+
+Only `name` is required. Lower `order` values appear first. Without `website`, the card has no link; without `image`, it shows a placeholder. For a local image, put it in `src/assets/members/` and use `image: "../../assets/members/person.jpg"`. The optional `role` field is stored but is not currently shown on cards.
+
+## Repository structure
+
+- `src/content/`: editable content and `config.ts` field validation.
+- `src/pages/`: routes and page layouts.
+- `src/components/`: reusable cards, header, footer, and map grid.
+- `src/utils/readingList.ts`: shared reading-list ordering and DOI links.
+- `src/styles/`: existing design.
+- `public/`, `30DoM-2025/`: static assets and map materials.
+- `scripts/preview.py`: serves generated HTML for review.
+- `.github/workflows/deploy.yml`: reproducible build and main-only deployment.
+
+Other inherited template code and collections remain available; content editing does not require changing them. Issue-based content automation is experimental; editing Markdown directly is the supported path.
+
+## Branch review and deployment
+
+Work on `chore/content-and-deploy-cleanup` to review these changes. The workflow builds that branch and pull requests targeting `main`, uploading a downloadable `website-html` artifact. Extract it and serve the folder containing `index.html` with `python3 -m http.server 4321`.
+
+Only a push to `main` (or a manual workflow run on `main`) deploys the live site. A branch preview never deploys to GitHub Pages.
+
+The October 5, 2026 failure was an install error: `withastro/action@v2` replaced pnpm 8 with `pnpm@latest` (12.9.1), which refused the esbuild/sharp install scripts with `ERR_PNPM_IGNORED_BUILDS`. The workflow now uses the pinned `packageManager` in `package.json`, Node from `.nvmrc`, and explicit install/build/upload steps. `pnpm-lock.yaml` is the single dependency lockfile; use pnpm when updating dependencies.

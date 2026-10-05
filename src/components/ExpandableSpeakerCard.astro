@@ -12,7 +12,7 @@ const cardId = `card-${entry.id.replace(/\//g, '-')}`;
 
 <article class="talk-card" data-card-id={cardId}>
   <div class="talk-date">
-    {entry.data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+    {entry.data.eventDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
   </div>
   <h3 class="talk-title">
     {entry.data.talkTitle}

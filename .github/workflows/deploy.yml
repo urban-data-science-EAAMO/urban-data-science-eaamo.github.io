@@ -2,42 +2,51 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, chore/content-and-deploy-cleanup]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
-# Add concurrency to cancel in-progress jobs
 concurrency:
-  group: "pages"
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout your repository using git
-        uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
         with:
-          version: 8.x.x
-      - name: Setup Node
-        uses: actions/setup-node@v4
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build static HTML
+        run: pnpm run build
+      - name: Upload HTML for inspection
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-      - name: Install, build, and upload your site
-        uses: withastro/action@v2
+          name: website-html
+          path: dist/
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
         with:
-          package-manager: pnpm@latest
+          path: dist/
 
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
